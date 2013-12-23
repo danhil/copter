@@ -1,0 +1,3 @@
+
+Grattis! MPLAB IDE och 32bit kompilator finns både till Linux och MAC
+http://www.microchip.com/pagehandler/en-us/family/mplabx/
