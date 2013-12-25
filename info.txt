@@ -1,0 +1,6 @@
+
+Grattis! MPLAB IDE och 32bit kompilator finns både till Linux och MAC
+http://www.microchip.com/pagehandler/en-us/family/mplabx/
+
+Sensor-kort
+http://www.electrokit.com/triple-axis-accelerometer-amp-gyro-breakout-mpu6050.49473
