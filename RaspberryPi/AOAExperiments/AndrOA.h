@@ -68,7 +68,7 @@ class AndrOA {
         ~AndrOA();
 
         /* Public fuctions */
-        int connect(void);
+        int connect_to_accessory(void);
         int read(unsigned char *buffer, int len, unsigned int timeout);
         int write(unsigned char *buffer, int len, unsigned int timeout);
 };
