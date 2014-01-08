@@ -86,16 +86,16 @@ int AndrOA::connect_to_accessory(void)
     usleep(800);
 
     /* Send the accessory info */
-    send_string(ACCESSORY_STRING_MANUFACTURER, (char*)manufacturer);
-    send_string(ACCESSORY_STRING_MODEL, (char*)model);
-    send_string(ACCESSORY_STRING_DESCRIPTION, (char*)description);
-    send_string(ACCESSORY_STRING_VERSION, (char*)version);
-    send_string(ACCESSORY_STRING_URI, (char*)url);
-    send_string(ACCESSORY_STRING_SERIAL, (char*)serial);
+    send_string(AOA_STRING_MANUFACTURER, (char*)manufacturer);
+    send_string(AOA_STRING_MODEL, (char*)model);
+    send_string(AOA_STRING_DESCRIPTION, (char*)description);
+    send_string(AOA_STRING_VERSION, (char*)version);
+    send_string(AOA_STRING_URI, (char*)url);
+    send_string(AOA_STRING_SERIAL, (char*)serial);
 
     /* Swich to accessory mode */
     res = libusb_control_transfer(device_handle, 0x40,
-            ACCESSORY_START, 0, 0, NULL, 0, 0);
+            AOA_START, 0, 0, NULL, 0, 0);
     if(res < 0){
         libusb_close(device_handle);
         device_handle = NULL;
@@ -112,7 +112,7 @@ int AndrOA::connect_to_accessory(void)
 
     printf("connecting to a new ProductID...\n");
     //attempt to connect to new PID,
-    //if that doesn't work try ACCESSORY_PID_ALT
+    //if that doesn't work try AOA_PID_ALT
     for(;;){
         --tries;
         int tmpRes = search_for_device(context, &idVendor, &idProduct);
@@ -197,7 +197,7 @@ int AndrOA::get_protocol()
     int tmpRes;
 
     tmpRes = libusb_control_transfer(device_handle, 0xc0,
-            ACCESSORY_GET_PROTOCOL, 0, 0, buffer, 2, 0);
+            AOA_GET_PROTOCOL, 0, 0, buffer, 2, 0);
     if(tmpRes < 0){
         return -1;
     }
@@ -219,7 +219,7 @@ int AndrOA::send_string(int index, const char *str)
 {
     int tmpRes;
     tmpRes = libusb_control_transfer(device_handle, 0x40,
-            ACCESSORY_SEND_STRING, 0, index,
+            AOA_SEND_STRING, 0, index,
             (unsigned char*)str, strlen(str) + 1, 0);
     return(tmpRes);
 }
@@ -245,7 +245,7 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
     ssize_t device_count;
 
     *idVendor = *idProduct = 0;
-    device_count = libusb_get_device_list(ctx, &devices);
+    device_count = libusb_get_device_list(context, &devices);
     if(device_count < 0){
         printf("Get device error.\n");
         return -1;
@@ -264,9 +264,9 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
         }
 
         //Already Android accessory mode ?
-        if(desc.idVendor == USB_ACCESSORY_VENDOR_ID &&
-                (desc.idProduct >= USB_ACCESSORY_PRODUCT_ID &&
-                 desc.idProduct <= USB_ACCESSORY_AUDIO_ADB_PRODUCT_ID)
+        if(desc.idVendor == USB_AOA_VENDOR_ID &&
+                (desc.idProduct >= USB_AOA_PRODUCT_ID &&
+                 desc.idProduct <= USB_AOA_AUDIO_ADB_PRODUCT_ID)
           ){
 #ifdef DEBUG
             printf("already in accessory mode.\n");
@@ -286,7 +286,7 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
             device_handle = NULL;
             if( tmpRes != -1 ){
 #ifdef DEBUG
-                printf("Android accessory protocol version: %d\n", verProtocol);
+                printf("Android accessory protocol version: %d\n", versionProtocol);
 #endif
                 break; //AOA found.
             }
