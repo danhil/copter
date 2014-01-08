@@ -306,4 +306,49 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
     return tmpRes;
 }
 
+/* findEndPoint() -  find end point number
+ * arg
+ * device : libusb_device
+ * return
+ * 0 : Success
+ * -1 : Valid end point not found
+ */
+int AndrOA::find_end_point(libusb_device *device)
+{
+    struct libusb_config_descriptor *config;
+    libusb_get_config_descriptor (device, 0, &config);
 
+    //initialize end point number
+    inEP = outEP = 0;
+
+    //Evaluate first interface and endpoint descriptor
+#ifdef DEBUG
+    printf("bNumInterfaces: %d\n", config->bNumInterfaces);
+#endif
+    const struct libusb_interface *itf = &config->interface[0];
+    struct libusb_interface_descriptor ifd = itf->altsetting[0];
+#ifdef DEBUG
+    printf("bNumEndpoints: %d\n", ifd.bNumEndpoints);
+#endif
+    for(int i=0; i<ifd.bNumEndpoints; i++){
+        struct libusb_endpoint_descriptor epd;
+        epd = ifd.endpoint[i];
+        if( epd.bmAttributes == 2 ) { //Bulk Transfer ?
+            if( epd.bEndpointAddress & 0x80){ //IN
+                if( inEP == 0 )
+                    inEP = epd.bEndpointAddress;
+            }else{                            //OUT
+                if( outEP == 0 )
+                    outEP = epd.bEndpointAddress;
+            }
+        }
+#ifdef DEBUG
+        printf(" bEndpointAddress: %02X, bmAttributes:%02X\n", epd.bEndpointAddress, epd.bmAttributes);
+#endif
+    }
+    if( outEP == 0 || inEP == 0) {
+        return -1;
+    }else{
+        return 0;
+    }
+}
