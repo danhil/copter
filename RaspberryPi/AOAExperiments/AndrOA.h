@@ -49,13 +49,13 @@ class AndrOA {
         libusb_context *context;
         struct libusb_device_handle* device_handle;
 
-        /* Private Functions to be implemented */
-        int searchForDevice(libusb_context *context, uint16_t *idVendor,
+        /* Private- Functions to be implemented */
+        int search_for_device(libusb_context *context, uint16_t *idVendor,
                 uint16_t *idProduct);
-        int findEndPoint(libusb_device *device);
-        int isAnAccessoryDevice (libusb_context *context);
-        int getProtocol(void);
-        int sendString(int index, const char *str);
+        int find_end_point(libusb_device *device);
+        int is_an_accessory_device (libusb_context *context);
+        int get_protocol(void);
+        int send_string(int index, const char *str);
 
     public:
         AndrOA(const char *manufacturer,
