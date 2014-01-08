@@ -1,0 +1,4 @@
+http://developer.android.com/tools/adk/adk.htm
+http://developer.android.com/tools/adk/adk2.html#src-download
+http://docs.eoeandroid.com/tools/adk/aoa.htm
+l
