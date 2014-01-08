@@ -34,6 +34,45 @@
 #define VERSION                     "0.0"
 #define BUGREPORT                   "hilton.daniel0@gmail.com"
 
+class AndrOA {
+    private:
+        const char *manufacturer;
+        const char *model;
+        const char *description;
+        const char *version;
+        const char *url;
+        const char *serial;
+        uint8_t inEP;
+        uint8_t outEP;
+        int versionProtocol;
+
+        libusb_context *context;
+        struct libusb_device_handle* device_handle;
+
+        /* Private Functions to be implemented */
+        int searchForDevice(libusb_context *context, uint16_t *idVendor,
+                uint16_t *idProduct);
+        int findEndPoint(libusb_device *device);
+        int isAnAccessoryDevice (libusb_context *context);
+        int getProtocol(void);
+        int sendString(int index, const char *str);
+
+    public:
+        AndrOA(const char *manufacturer,
+                const char *model,
+                const char *description,
+                const char *version,
+                const char *url,
+                const char *serial);
+
+        ~AndrOA();
+
+        /* Public fuctions */
+        int connect(void);
+        int read(unsigned char *buffer, int len, unsigned int timeout);
+        int write(unsigned char *buffer, int len, unsigned int timeout);
+};
+
 
 
 #endif /* __AndrOA_h__ */
