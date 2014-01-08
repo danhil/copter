@@ -140,4 +140,47 @@ int AndrOA::connect_to_accessory(void)
     return 0;
 }
 
+/* read() - read data from accessory device
+ * @args
+ * buf     : data buffer
+ * len     : data length
+ * timeout : wait time(ms)
+ * @return
+ * < 0 : Error (libusb_bulk_transfer error code)
+ * >=0 : Succes(received bytes)
+ */
+
+int AndrOA::read(unsigned char *buffer, int len, unsigned int timeout)
+{
+    int xferred;
+    int tmpRes = libusb_bulk_transfer(device_handle, inEP,
+            buffer, len, &xferred, timeout);
+    if(tmpRes == 0){
+        tmpRes = xferred;
+    }
+    return(tmpRes);
+}
+
+/*  write() - write data to accessory device
+ *  @args
+ *  *buf    : data buffer
+ *  len     : data length
+ *  timeout : wait time(ms)
+ *
+ * @ret
+ * <0 : Error (libusb_bulk_transfer error code)
+ * >=0 : Succes(received bytes)
+ */
+
+int AndrOA::write(unsigned char *buffer, int len, unsigned int timeout)
+{
+    int xferred;
+    int tmpRes = libusb_bulk_transfer(device_handle, outEP, buffer,
+            len, &xferred, timeout);
+    if(tmpRes == 0)
+    {
+        tmpRes = xferred;
+    }
+    return(tmpRes);
+}
 
