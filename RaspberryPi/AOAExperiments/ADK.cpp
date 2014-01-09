@@ -42,12 +42,15 @@ int main()
     printf("press ^C to exit program ...\n");
     printf("connecting to the accessory");
     acc.connect_to_accessory();
+    printf("connected to the accessory");
 
     while(1){
-        res = acc.read(buf, 2, 10);
+        res = acc.read(buf, 7, 10);
         if(res > 0){
-            printf("%d bytes rcvd : %02X %02X\n", res, buf[0], buf[1]);
-
+            printf("%d bytes rcvd : %02X %02X %02X %02X %02X %02X %02X\n", res, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
+            long long i = 0;
+            i = buf[6] + (buf[5] << 8) + (buf[4] << 16) + (buf[3] << 24) + (buf[2] << 32) + (buf[1] << 40) + (buf[0]<< 48);
+            printf("This is dec: %lld\n", i);
 #ifdef RPI
             if(buf[0] == 0x01){
                 if(buf[1] == 1){

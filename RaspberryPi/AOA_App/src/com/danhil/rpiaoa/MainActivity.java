@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
+import java.util.concurrent.TimeUnit;
 
 
 import com.android.future.usb.UsbAccessory;
@@ -47,7 +48,7 @@ public class MainActivity extends Activity implements Runnable {
 
 	private UsbManager usbManagerMobile;
 	private UsbAccessory accessoryForMobile;
-
+	
 	ParcelFileDescriptor fileDescriptor;
 
 	FileInputStream inputStream;
@@ -240,13 +241,15 @@ public class MainActivity extends Activity implements Runnable {
 			// Ignoring orientation since the activity is using screenOrientation "nosensor"
 			try {
 				// TODO Clean up this mess, especially this. The actual concept is proved!
-				byte[] command = {'3'};
-				String xString = Float.toString(x);
-				byte[] transmitX = new byte[xString.length()+1];
-				xString.getBytes();
+				byte[] command = {0x3};
+				String xString = String.format("%.4f", x);//Float.toString(x);
+				//byte[] transmitX = new byte[xString.length()];
+				//byte[] transmitX = {0x1,0x2};
+				byte[] transmitX = xString.getBytes();
 				logString = " " + -x + " " + y + " " + "\n";
 				foutAcc.write(logString.getBytes());
 				foutAcc.flush();
+				Log.d("SensorChanged", "sending command");
 				sendCommand(command, transmitX);
 				statusView.setText(Float.toString(x));
 				
@@ -503,9 +506,16 @@ public class MainActivity extends Activity implements Runnable {
 	
 	public void sendCommand(byte[] command, byte[] value) {
 		byte[] sendBuffer = concat(command,value);
+		Log.d("sendCommand", "Sent the command: \n" + new String(sendBuffer));
 		if (outputStream != null) {
 			try {
 				outputStream.write(sendBuffer);
+				try {
+					TimeUnit.SECONDS.sleep(1);
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			} catch (IOException e) {
 				Log.e(TAG, "Failed Write Android->Acc", e);
 			}
