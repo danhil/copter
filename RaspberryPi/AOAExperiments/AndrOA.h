@@ -1,3 +1,19 @@
+/*
+ * In using libusb to communicate with a usbdevice the following steps are performed:
+ *
+ ****Initialize the library by calling the function libusb_init and creating a session
+ ****Call the function libusb_get_device_list to get a list of connected devices.
+ * This creates an array of libusb_device containing all usb devices connected to the system.
+ **** Loop through all these devices and check their options
+ ***** Discover the one and open the device either by libusb_open or
+ * libusb_open_device_with_vid_pid(when you know vendor and product id of the device) to open the device
+ ***** Clear the list you got from libusb_get_device_list by using libusb_free_device_list
+ ***** Claim the interface with libusb_claim_interface (requires you to know the interface numbers of device)
+ **** I/O through bulk transfers etc.
+ ***** Release the device by using libusb_release_interface
+ ***** Close the device you openedbefore, by using libusb_close
+ ***** Close the session by using libusb_exit
+ */
 #ifndef __AndrOA_h__
 #define __AndrOA_h__
 

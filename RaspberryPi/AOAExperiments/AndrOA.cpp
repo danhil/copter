@@ -3,6 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 
+/* The transfer will eventually use ISOCHRONOUS transfer due to
+ * the time critical nature of the values being transmitted*/
+
 /* Constructor assign */
 AndrOA::AndrOA(const char *manufacturer,
         const char *model,
@@ -19,11 +22,16 @@ AndrOA::AndrOA(const char *manufacturer,
     device_handle(NULL),
     context(NULL){}
 
-/* Destructor, release interface
- * exit the context
- */
+    /* Destructor, release interface
+     * exit the context
+     */
 AndrOA::~AndrOA()
 {
+    /*
+     *As the interface is claimed beforeany operation
+     on the device, it has to be released upon destructon when
+     finished with the device.
+     */
     if(device_handle != NULL )
     {
         libusb_release_interface(device_handle, 0);
@@ -52,6 +60,15 @@ AndrOA::~AndrOA()
 
 int AndrOA::connect_to_accessory(void)
 {
+    /*
+     *Each usb device is manipulated with a libusb_device
+     and libusb_device_handle objects in libusb. The libusb API
+     ties an open device to a specific interface.
+     This means that if you want to claim multiple interfaces
+     on a device, you should open the device multiple times to
+     receive one libusb_dev_handle for each interface you want
+     to communicate with. Don't forget to call usb_claim_interface.
+     */
     int returned = libusb_init(&context);
     if(returned != 0){
         printf("ERROR libusb_init failed\n");
@@ -174,6 +191,13 @@ int AndrOA::read(unsigned char *buffer, int len, unsigned int timeout)
 
 int AndrOA::write(unsigned char *buffer, int len, unsigned int timeout)
 {
+    /*  Transfers packets which contain control information,
+     *  data and error checking fields
+     *This interface has its limitations.
+     The application will sleep inside libusb_bulk_transfer()
+     (when using bulk transfer) until the transaction has completed.
+     Also there is no possibility of performin I/O with multiple endpoints.
+     */
     int xferred;
     int tmpRes = libusb_bulk_transfer(device_handle, outEP, buffer,
             len, &xferred, timeout);
@@ -245,6 +269,7 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
     ssize_t device_count;
 
     *idVendor = *idProduct = 0;
+    // Get the list of all ot the connected devices.
     device_count = libusb_get_device_list(context, &devices);
     if(device_count < 0){
         printf("Get device error.\n");
@@ -252,6 +277,20 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
     }
 
     //Go thorugh and enumerate devices
+    /*
+     *New devices presented by the libusb_get_device_list()
+     function all have a reference count of 1.
+     You can increase and decrease reference count using
+     libusb_ref_device() and libusb_unref_device().
+     A device is destroyed when its reference count reaches 0.
+     With the above information in mind,
+     the process of opening a device can be viewed as follows:
+     *****Discover devices using libusb_get_device_list().
+     *****Choose the device that you want to operate,
+     and call libusb_open().
+     *****Unref all devices in the discovered device list.
+     *****Free the discovered device list.
+     */
     for(i=0; i<device_count; i++){
         device = devices[i];
         libusb_get_device_descriptor(device, &desc);
@@ -279,7 +318,13 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
         if((device_handle = libusb_open_device_with_vid_pid(context, desc.idVendor,  desc.idProduct)) == NULL) {
             printf("Device open error.\n");
         } else {
-            libusb_claim_interface(device_handle, 0);
+            /* Check if the device is claimed by the kernel */
+
+            if(libusb_kernel_driver_active(device_handle, 0) == 1) { //find out if kernel driver is attached
+                printf("Kernel Driver Active\n");
+                if(libusb_detach_kernel_driver(device_handle, 0) == 0) //detach it
+                    printf("Kernel Driver Detached!\n");            }
+            libusb_claim_interface(device_handle, 0); // Claim interface 0
             tmpRes = get_protocol();
             libusb_release_interface (device_handle, 0);
             libusb_close(device_handle);
@@ -288,6 +333,11 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
 #ifdef DEBUG
                 printf("Android accessory protocol version: %d\n", versionProtocol);
 #endif
+                /* TODO Free devices and then device list
+                 * libusb_free_device_list(devices, 1);
+                 * Frees all devices in list;
+                 */
+
                 break; //AOA found.
             }
         }
