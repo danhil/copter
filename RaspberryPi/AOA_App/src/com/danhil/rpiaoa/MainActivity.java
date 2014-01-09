@@ -239,9 +239,17 @@ public class MainActivity extends Activity implements Runnable {
 
 			// Ignoring orientation since the activity is using screenOrientation "nosensor"
 			try {
+				// TODO Clean up this mess, especially this. The actual concept is proved!
+				byte[] command = {'3'};
+				String xString = Float.toString(x);
+				byte[] transmitX = new byte[xString.length()+1];
+				xString.getBytes();
 				logString = " " + -x + " " + y + " " + "\n";
 				foutAcc.write(logString.getBytes());
 				foutAcc.flush();
+				sendCommand(command, transmitX);
+				statusView.setText(Float.toString(x));
+				
 			} catch (IOException e) {
 				Log.e("IOError",e.toString());
 			}
@@ -492,4 +500,24 @@ public class MainActivity extends Activity implements Runnable {
 			}
 		}
 	}
+	
+	public void sendCommand(byte[] command, byte[] value) {
+		byte[] sendBuffer = concat(command,value);
+		if (outputStream != null) {
+			try {
+				outputStream.write(sendBuffer);
+			} catch (IOException e) {
+				Log.e(TAG, "Failed Write Android->Acc", e);
+			}
+		}
+	}
+	
+	byte[] concat(byte[] A, byte[] B) {
+		   int aLen = A.length;
+		   int bLen = B.length;
+		   byte[] res= new byte[aLen+bLen];
+		   System.arraycopy(A, 0, res, 0, aLen);
+		   System.arraycopy(B, 0, res, aLen, bLen);
+		   return res;
+		}
 }
