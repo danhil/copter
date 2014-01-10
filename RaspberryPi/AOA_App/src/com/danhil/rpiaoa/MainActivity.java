@@ -1,43 +1,31 @@
 package com.danhil.rpiaoa;
 
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 
 
 import com.android.future.usb.UsbAccessory;
 import com.android.future.usb.UsbManager;
 
 import com.danhil.rpiaoa.R;
+import com.danhil.rpiaoa.observers.SensorsObserver;
+import com.danhil.rpiaoa.sensors.Sensors;
+
 import android.app.*;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.hardware.Sensor;
-import android.hardware.SensorEvent;
-import android.hardware.SensorEventListener;
-import android.hardware.SensorManager;
 import android.os.Bundle;
-import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
-import android.widget.CompoundButton;
-import android.widget.CompoundButton.OnCheckedChangeListener;
-import android.widget.SeekBar;
-import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
-import android.widget.ToggleButton;
 
-public class MainActivity extends Activity implements Runnable {
+public class MainActivity extends Activity implements Runnable, SensorsObserver {
 
 	private static final String TAG = "RPIAOA";
 
@@ -54,10 +42,10 @@ public class MainActivity extends Activity implements Runnable {
 	FileInputStream inputStream;
 	FileOutputStream outputStream;
 
-	private ToggleButton button;
-	private static ToggleButton statusButton;
 	private TextView statusView;
-	private SeekBar seekBar;
+	
+	private Sensors sensors;
+	private float[] gyro = {0, 0, 0};
 
 	private final BroadcastReceiver usbRecieve = new BroadcastReceiver() {
 
@@ -88,33 +76,15 @@ public class MainActivity extends Activity implements Runnable {
 	};
 	
 	//GyroVariables
-	private SensorManager mSensorManager;
-	private Sensor mGyroSensor, mAccSensor, mMagSensor;
 	public static final String TAG1 = "SensingService";
-	private static String fileGyro,fileAcc,fileMag;
-	private static FileOutputStream foutGyro, foutAcc, foutMag;
-	public static File FILEPATH;
-
 	@Override
 	public void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		// Thinigymabobs
+		sensors = new Sensors(this);
+		sensors.registerSensorsObserver(this);
 		
-		// GYRO INIT
-		Log.e(TAG, "onCreateGyro");
-		FILEPATH = new File(Environment.getExternalStorageDirectory().getPath() + "/SensorSensing/");
-		FILEPATH.mkdirs();
-		Log.e(TAG, "Path for gyrologs is :" + FILEPATH);
-
-		prepareFiles();
-
-		mSensorManager = (SensorManager) getSystemService(SENSOR_SERVICE);
-
-		mGyroSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
-		mAccSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
-		mMagSensor = mSensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-		
-		
-		// AOA COMMUNICATION
+		// AOA COMMUNICATION 	 	
 		usbManagerMobile = UsbManager.getInstance(this);
 		permissionIntent = PendingIntent.getBroadcast(this, 0, new Intent(
 				ACTION_USB_PERMISSION), 0);
@@ -129,209 +99,15 @@ public class MainActivity extends Activity implements Runnable {
 		}
 		
 		setContentView(R.layout.activity_main);
-		button = (ToggleButton) findViewById(R.id.toggle);
 		statusView = (TextView) findViewById(R.id.statusIndication);
-		statusButton = (ToggleButton) findViewById(R.id.statusButton);
-		seekBar = (SeekBar) findViewById(R.id.seekBar);
-
-		button.setOnCheckedChangeListener(new OnCheckedChangeListener() {
-			@Override
-			public void onCheckedChanged(CompoundButton buttonView,
-					boolean isChecked) {
-				byte command = 0x1;
-				byte value = (byte) (isChecked ? 0x1 : 0x0);
-				sendCommand(command, value);
-			}
-		});
-		
-		
-
-		seekBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
-			@Override
-			public void onProgressChanged(SeekBar seekBar, int progress,
-					boolean fromUser) {
-				// Dragging knob
-				byte value = (byte) (progress * 255 / 100);
-				byte command = 0x2;
-				Log.d(TAG, "Current Value:" + progress + "," + value);
-				sendCommand(command, value);
-			}
-
-			@Override
-			public void onStartTrackingTouch(SeekBar seekBar) {
-				// Touch knob
-			}
-
-			@Override
-			public void onStopTrackingTouch(SeekBar seekBar) {
-				// Release knob
-				// mSeekBar.setProgress(50);
-			}
-		});
 
 		enableControls(false);
-	}
-	
-	private SensorEventListener mGyroListener = new SensorEventListener() {
-
-		private static final float MIN_TIME_STEP = (1f / 40f);
-		private long mLastTime = System.currentTimeMillis();
-		private float mRotationX, mRotationY, mRotationZ;
-
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			float[] values = event.values;
-			float x = values[0];
-			float y = values[1];
-			float z = values[2];
-			String logString;
-
-			float angularVelocity = z * 0.96f; // Minor adjustment to avoid drift on Nexus
-
-			// Calculate time diff
-			long now = System.currentTimeMillis();
-			float timeDiff = (now - mLastTime) / 1000f;
-			mLastTime = now;
-			if (timeDiff > 1) {
-				// Make sure we don't go bananas after pause/resume
-				timeDiff = MIN_TIME_STEP;
-			}
-
-			mRotationX += x * timeDiff;
-			if (mRotationX > 0.5f)
-				mRotationX = 0.5f;
-			else if (mRotationX < -0.5f)
-				mRotationX = -0.5f;
-
-			mRotationY += y * timeDiff;
-			if (mRotationY > 0.5f)
-				mRotationY = 0.5f;
-			else if (mRotationY < -0.5f)
-				mRotationY = -0.5f;
-
-			mRotationZ += angularVelocity * timeDiff;
-
-			try {
-				logString = ""+ timeDiff + " " + mRotationX + " " + mRotationY + " " + mRotationZ + "\n";
-				foutGyro.write(logString.getBytes());
-				foutGyro.flush();
-			} catch (IOException e) {
-				Log.e("IOError",e.toString());
-			}
-		}
-	};
-
-	private SensorEventListener mAccListener = new SensorEventListener() {
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			float[] values = event.values;
-			float x = values[0];
-			double doubleX = Double.parseDouble(Float.valueOf(x).toString());	
-			float y = values[1];
-			// float z = values[2];
-			String logString;
-
-			// Ignoring orientation since the activity is using screenOrientation "nosensor"
-			try {
-				// TODO Clean up this mess, especially this. The actual concept is proved!
-				byte[] command = {};
-				//String xString = String.format("%.4f", x);//
-				//x = -4.323343f;
-				String xString = Float.toString(x);
-				Log.d("xString", xString);
-				//byte[] transmitX = new byte[xString.length()];
-				//byte[] transmitX = {0x1,0x2};
-				byte[] transmitX = xString.getBytes();
-				logString = " " + -x + " " + y + " " + "\n";
-				foutAcc.write(logString.getBytes());
-				foutAcc.flush();
-				Log.d("SensorChanged", "sending command");
-				sendCommand(command, transmitX);
-				statusView.setText(Float.toString(x));
-				
-			} catch (IOException e) {
-				Log.e("IOError",e.toString());
-			}
-		}
-	};
-
-	private SensorEventListener mMagListener = new SensorEventListener() {
-		@Override
-		public void onAccuracyChanged(Sensor sensor, int accuracy) {
-		}
-
-		@Override
-		public void onSensorChanged(SensorEvent event) {
-			float[] values = event.values;
-			float x = values[0];
-			float y = values[1];
-			// float z = values[2];
-			String logString;
-			try {
-				logString = " " + x + " " + -y + " " + "\n";
-				foutMag.write(logString.getBytes());
-				foutMag.flush();
-			} catch (IOException e) {
-				Log.e("IOError",e.toString());
-			}
-		}
-	};
-
-	public void prepareFiles(){
-		Log.d("prepareFiles", "initialized");
-
-		//create a new file for gyro
-		try {
-			Log.e("Log","Write");
-			fileAcc = FILEPATH+"/"+getCurrentTimeStamp()+"-accl.txt";
-			foutAcc = new FileOutputStream(fileAcc,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-		//create a new file for accelorometer
-		try {
-			Log.e("Log","Write");
-			fileGyro = FILEPATH+"/"+getCurrentTimeStamp()+"-gyro.txt";
-			foutGyro = new FileOutputStream(fileGyro,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-		//create a new file for mag
-		try {
-			fileMag = FILEPATH+"/"+getCurrentTimeStamp()+"-mag.txt";
-			foutMag = new FileOutputStream(fileMag,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-
-		Log.d("prepareFiles", "excecuted");
-	}
-
-	public static String getCurrentTimeStamp() {
-		Locale loc = Locale.getDefault();
-		SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", loc);
-		Date now = new Date();
-		String strDate = sdfDate.format(now);
-		return strDate;
 	}
 
 	@Override
 	public void onResume() {
 		super.onResume();
-		//GYRO
-		mSensorManager.registerListener(mGyroListener, mGyroSensor, SensorManager.SENSOR_DELAY_UI);
-		mSensorManager.registerListener(mAccListener, mAccSensor, SensorManager.SENSOR_DELAY_UI);
-		mSensorManager.registerListener(mMagListener, mMagSensor, SensorManager.SENSOR_DELAY_UI);
-		prepareFiles();
-		
+		sensors.onStart();
 		// AOA USB communication
 		if (inputStream != null && outputStream != null) {
 			return;
@@ -359,32 +135,16 @@ public class MainActivity extends Activity implements Runnable {
 	@Override
 	public void onPause() {
 		super.onPause();
-		// GYRO
-		mSensorManager.unregisterListener(mGyroListener, mGyroSensor);
-		mSensorManager.unregisterListener(mAccListener, mGyroSensor);
-		mSensorManager.unregisterListener(mMagListener, mMagSensor);
-		finishFiles();
+		sensors.onPause();
 		//USB
 		closeAccessory();
 	}
 	
-	public void finishFiles(){
-		try{
-			//	foutAcc.flush();
-			foutAcc.close();
-			//	foutGyro.flush();
-			foutGyro.close();
-			//	foutMag.flush();
-			foutMag.close();
-		}catch(IOException e){
-			Log.e("IOException","Error on closing files");
-		}
-	}
+	
 
 	@Override
 	public void onDestroy() {
-		// GYRO
-		finishFiles();
+		sensors.onExit();
 		//USB
 		unregisterReceiver(usbRecieve);
 		super.onDestroy();
@@ -431,7 +191,6 @@ public class MainActivity extends Activity implements Runnable {
 		} else {
 			statusView.setText("Not connected.");
 		}
-		button.setEnabled(enable);
 	}
 
 	private static final int MESSAGE_LED = 1;
@@ -461,9 +220,9 @@ public class MainActivity extends Activity implements Runnable {
 				switch (reciveBuffer[i]) {
 				case 0x1:
 					if (len >= 2) {
-						Message m = Message.obtain(mHandler, MESSAGE_LED);
+						Message m = Message.obtain(handler, MESSAGE_LED);
 						m.arg1 = (int) reciveBuffer[i + 1];
-						mHandler.sendMessage(m);
+						handler.sendMessage(m);
 						i += 2;
 					}
 					break;
@@ -479,15 +238,15 @@ public class MainActivity extends Activity implements Runnable {
 	}
 
 	// Change the view in the UI thread, handler is static so no leaks occur
-	private static Handler mHandler = new Handler() {
+	private static Handler handler = new Handler() {
 		@Override
 		public void handleMessage(Message msg) {
 			switch (msg.what) {
 			case MESSAGE_LED:
 				if (msg.arg1 == 0) {
-					statusButton.setChecked(false);
+					//blink
 				} else {
-					statusButton.setChecked(true);
+					//Poo
 				}
 				break;
 			}
@@ -528,4 +287,21 @@ public class MainActivity extends Activity implements Runnable {
 		   System.arraycopy(B, 0, res, aLen, bLen);
 		   return res;
 		}
+	
+	@Override
+    public void onSensorsChanged(float[] gyro, long timeStamp)
+    {
+			statusView.setText("Sensors Changed");
+            // Get a local copy of the sensor values
+            System.arraycopy(gyro, 0, this.gyro, 0,
+                            gyro.length);
+            byte[] command = {};
+            float x = gyro[0];
+            String xString = Float.toString(x);
+            byte[] transmitX = xString.getBytes();
+            sendCommand(command, transmitX);
+            statusView.setText(Float.toString(x));
+    }
+
+
 }
