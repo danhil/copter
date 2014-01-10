@@ -98,15 +98,15 @@ public class Gravity implements SensorEventListener
 
 			if (landscapeMode)
 			{
-				gravity = quaternionToDeviceVehicleMode(gravity);
+				gravity = quaternionToDeviceLandscapeMode(gravity);
 			}
 
 			notifyGravityObserver();
 		}
 	}
-	public void setLandscapeMode(boolean vehicleMode)
+	public void setLandscapeMode(boolean LandscapeMode)
 	{
-		this.landscapeMode = vehicleMode;
+		this.landscapeMode = LandscapeMode;
 	}
 
 	private void initQuaternionRotations()
@@ -134,7 +134,7 @@ public class Gravity implements SensorEventListener
 		}
 	}
 
-	private float[] quaternionToDeviceVehicleMode(float[] matrix)
+	private float[] quaternionToDeviceLandscapeMode(float[] matrix)
 	{
 
 		vIn = new Vector3D(matrix[0], matrix[1], matrix[2]);

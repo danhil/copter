@@ -103,16 +103,16 @@ public class Accelorometer implements SensorEventListener
 
 			if (landscapeMode)
 			{
-				acceleration = quaternionToDeviceVehicleMode(acceleration);
+				acceleration = quaternionToDeviceLandscapeMode(acceleration);
 			}
 
 			notifyAccelerationObserver();
 		}
 	}
 
-	public void setVehicleMode(boolean vehicleMode)
+	public void setLandscapeMode(boolean LandscapeMode)
 	{
-		this.landscapeMode = vehicleMode;
+		this.landscapeMode = LandscapeMode;
 	}
 	private void initQuaternionRotations()
 	{
@@ -139,7 +139,7 @@ public class Accelorometer implements SensorEventListener
 		}
 	}
 
-	private float[] quaternionToDeviceVehicleMode(float[] matrix)
+	private float[] quaternionToDeviceLandscapeMode(float[] matrix)
 	{
 
 		vIn = new Vector3D(matrix[0], matrix[1], matrix[2]);

@@ -108,9 +108,9 @@ public class Gyroscope implements SensorEventListener
 		}
 	}
 
-	public void setLandscapeMode(boolean vehicleMode)
+	public void setLandscapeMode(boolean landscapeMode)
 	{
-		this.landscapeOrientation = vehicleMode;
+		this.landscapeOrientation = landscapeMode;
 	}
 
 	private void initQuaternionRotations()

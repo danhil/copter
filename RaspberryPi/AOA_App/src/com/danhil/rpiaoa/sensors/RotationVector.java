@@ -1,5 +1,6 @@
 package com.danhil.rpiaoa.sensors;
 
+
 import java.io.FileOutputStream;
 import java.util.ArrayList;
 
@@ -12,102 +13,104 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 
-import com.danhil.rpiaoa.observers.MagnetObserver;
+import com.danhil.rpiaoa.observers.RotationVectorObserver;
 
-public class Magnet implements SensorEventListener
+public class RotationVector implements SensorEventListener
 {
 
-	private static final String tag = Magnet.class.getSimpleName();
-
-	// Keep track of observers.
-	private ArrayList<MagnetObserver> observersMagnetic;
-	private boolean landscapeMode = false;
+	private static final String tag = RotationVector.class.getSimpleName();
+	private ArrayList<RotationVectorObserver> observersRotationVector;
+	private boolean landscapeOrientation = false;
 	private Context context;
-	private float[] magnetic = new float[3];
+	private SensorManager sensorManager;
+	private float[] RotationVector = new float[5];
+	// Keep track of the moest recent event.
 	private long timeStamp = 0;
+	// ROtate from normal android orientation to actual orientation
 	private Rotation yQuaternion;
 	private Rotation xQuaternion;
 	private Rotation rotationQuaternion;
-	private SensorManager sensorManager;
+	// ROtation vectors
 	private Vector3D vIn;
 	private Vector3D vOut;
 	private FileOutputStream fOut;
 
-	public Magnet(Context context, FileOutputStream fOut)
+	public RotationVector(Context context, FileOutputStream fOut)
 	{
 		super();
 
 		this.context = context;
 
-		this.fOut = fOut;
-
 		initQuaternionRotations();
 
-		observersMagnetic = new ArrayList<MagnetObserver>();
+		observersRotationVector = new ArrayList<RotationVectorObserver>();
 
 		sensorManager = (SensorManager) this.context
 				.getSystemService(Context.SENSOR_SERVICE);
+
+		this.fOut = fOut;
 	}
 
-	public void registerMagneticObserver(MagnetObserver observer)
+	public void registerRotationVectorObserver(RotationVectorObserver observer)
 	{
-		if (observersMagnetic.size() == 0)
+		if (observersRotationVector.size() == 0)
 		{
 			sensorManager.registerListener(this,
-					sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD),
+					sensorManager.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR),
 					SensorManager.SENSOR_DELAY_FASTEST);
 		}
 
-		// Only register the observer if it is not already registered.
-		int i = observersMagnetic.indexOf(observer);
+		int i = observersRotationVector.indexOf(observer);
 		if (i == -1)
 		{
-			observersMagnetic.add(observer);
+			observersRotationVector.add(observer);
 		}
 	}
 
-	public void removeMagneticObserver(MagnetObserver observer)
+	public void removeRotationVectorObserver(RotationVectorObserver observer)
 	{
-		int i = observersMagnetic.indexOf(observer);
+		int i = observersRotationVector.indexOf(observer);
 		if (i >= 0)
 		{
-			observersMagnetic.remove(i);
+			observersRotationVector.remove(i);
 		}
 
 		// If there are no observers, then don't listen for Sensor Events.
-		if (observersMagnetic.size() == 0)
+		if (observersRotationVector.size() == 0)
 		{
 			sensorManager.unregisterListener(this);
 		}
 	}
 
+
 	@Override
 	public void onAccuracyChanged(Sensor sensor, int accuracy)
 	{
-
+		// Do nothing.
 	}
 
 	@Override
 	public void onSensorChanged(SensorEvent event)
 	{
-		if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+		if (event.sensor.getType() == Sensor.TYPE_ROTATION_VECTOR)
 		{
-			System.arraycopy(event.values, 0, magnetic, 0, event.values.length);
+			System.arraycopy(event.values, 0, this.RotationVector, 0,
+					event.values.length);
 
-			timeStamp = event.timestamp;
+			this.timeStamp = event.timestamp;
 
-			if (landscapeMode)
+			if (landscapeOrientation)
 			{
-				this.magnetic = quaternionToLandscapeMode(this.magnetic);
+				this.RotationVector = compensateToLandscape(this.RotationVector);
 			}
 
-			notifyMagneticObserver();
+			notifyRotationVectorObserver();
 		}
 	}
 
 	public void setLandscapeMode(boolean landscapeMode)
 	{
-		this.landscapeMode = landscapeMode;
+		this.landscapeOrientation = landscapeMode;
 	}
 
 	private void initQuaternionRotations()
@@ -127,22 +130,20 @@ public class Magnet implements SensorEventListener
 		rotationQuaternion = yQuaternion.applyTo(xQuaternion);
 	}
 
-	private void notifyMagneticObserver()
+	private void notifyRotationVectorObserver()
 	{
-		for (MagnetObserver a : observersMagnetic)
+		for (RotationVectorObserver a : observersRotationVector)
 		{
-			a.onMagneticSensorChanged(this.magnetic, this.timeStamp, fOut);
+			a.onRotationVectorSensorChanged(this.RotationVector, this.timeStamp, fOut);
 		}
 	}
 
-	private float[] quaternionToLandscapeMode(float[] matrix)
+	private float[] compensateToLandscape(float[] matrix)
 	{
 		vIn = new Vector3D(matrix[0], matrix[1], matrix[2]);
 		vOut = rotationQuaternion.applyTo(vIn);
-
 		float[] rotation =
 			{ (float) vOut.getX(), (float) vOut.getY(), (float) vOut.getZ() };
-
 		return rotation;
 	}
 }

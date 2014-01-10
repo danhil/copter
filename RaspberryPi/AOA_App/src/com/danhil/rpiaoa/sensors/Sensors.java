@@ -17,6 +17,7 @@ import com.danhil.rpiaoa.observers.AccelerationObserver;
 import com.danhil.rpiaoa.observers.GravityObserver;
 import com.danhil.rpiaoa.observers.GyroscopeObserver;
 import com.danhil.rpiaoa.observers.MagnetObserver;
+import com.danhil.rpiaoa.observers.RotationVectorObserver;
 import com.danhil.rpiaoa.observers.SensorsObserver;
 /**
  * Uses the observer pattern to register obervers to sensors.
@@ -24,7 +25,7 @@ import com.danhil.rpiaoa.observers.SensorsObserver;
  *
  */
 public class Sensors implements GyroscopeObserver,
-AccelerationObserver, MagnetObserver, GravityObserver
+AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 {
 	private static final boolean DEBUG = false;
 
@@ -32,8 +33,8 @@ AccelerationObserver, MagnetObserver, GravityObserver
 			.getSimpleName();
 	private static final int MIN_SAMPLE_COUNT = 30;
 	protected static File FILEPATH;
-	private static String fileGyro,fileAcc,fileMag, fileGrav;
-	private static FileOutputStream foutGyro, foutAcc, foutMag, foutGrav;
+	private static String fileGyro,fileAcc,fileMag, fileGrav, fileRot;
+	private static FileOutputStream foutGyro, foutAcc, foutMag, foutGrav, foutRot;
 
 	// Keep track of observers.
 	private ArrayList<SensorsObserver> sensorObservors;
@@ -57,6 +58,10 @@ AccelerationObserver, MagnetObserver, GravityObserver
 	// Raw accelerometer data
 	private float[] magnetic = new float[]
 			{ 0, 0, 0 };
+	
+	// Raw accelerometer data
+	private float[] rotation = new float[]
+			{ 0, 0, 0, 0, 0 };
 
 	private int gravitySampleCount = 0;
 	private int magneticSampleCount = 0;
@@ -66,6 +71,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 	private Gyroscope gyroscopeSensor;
 	private Magnet magneticSensor;
 	private Accelorometer accelorometerSensor;
+	private RotationVector rotationVectorSensor;
 	private String TAG = Sensors.class.getSimpleName();
 
 
@@ -115,6 +121,13 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		try {
 			fileGrav = FILEPATH+"/"+getCurrentTimeStamp()+"-mag.txt";
 			foutGrav = new FileOutputStream(fileGrav, true);
+		} catch (Exception e) {
+			// TODO: handle exception
+		}
+		
+		try {
+			fileRot = FILEPATH+"/"+getCurrentTimeStamp()+"-rot.txt";
+			foutRot = new FileOutputStream(fileRot, true);
 		} catch (Exception e) {
 			// TODO: handle exception
 		}
@@ -193,7 +206,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		if(DEBUG)
 			writeToFile(out, gyroscope);
 
-		notifySensorsObserver();
+		//notifySensorsObserver();
 	}
 
 	@Override
@@ -203,6 +216,24 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		System.arraycopy(magnetic, 0, this.magnetic, 0, magnetic.length);
 		if(DEBUG)
 			writeToFile(out, magnetic);
+	}
+	
+	@Override
+	public void onRotationVectorSensorChanged(float[] rotation, long timestamp, FileOutputStream out)
+	{
+		// don't start until first accelerometer/magnetometer orientation has
+		// been acquired
+		Log.e(TAG, "Gyro changed");
+		if (!hasInitialOrientation)
+		{
+			return;
+		}
+		timestampOld = timestamp;
+		System.arraycopy(rotation, 0, this.rotation, 0, rotation.length);
+		if(DEBUG)
+			writeToFile(out, rotation);
+
+		notifySensorsObserver();
 	}
 
 	private void writeToFile(FileOutputStream out, float[] values){
@@ -227,7 +258,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 	{
 		for (SensorsObserver a : sensorObservors)
 		{
-			a.onSensorsChanged(this.gyroscope,
+			a.onSensorsChanged(this.rotation,
 					this.timestampOld);
 		}
 	}
@@ -243,7 +274,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		}
 
 	}
-	public void removeAccelerationObserver(
+	public void removeSensorsObserver(
 			SensorsObserver observer)
 	{
 		int i = sensorObservors.indexOf(observer);
@@ -261,7 +292,8 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		if (hasInitialOrientation)
 		{
 			gravitySensor.removeGravityObserver(this);
-		}               magneticSensor.removeMagneticObserver(this);
+	        magneticSensor.removeMagneticObserver(this);
+		}
 	}
 
 	private void initSensors()
@@ -270,6 +302,8 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		magneticSensor = new Magnet(context, foutMag);
 		gyroscopeSensor = new Gyroscope(context, foutGyro);
 		accelorometerSensor = new Accelorometer(context, foutAcc);
+		rotationVectorSensor = new RotationVector(context, foutRot);
+		
 	}
 
 	private void restart()
@@ -278,6 +312,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		magneticSensor.registerMagneticObserver(this);
 		gyroscopeSensor.registerGyroscopeObserver(this);
 		accelorometerSensor.registerAccelerationObserver(this);
+		rotationVectorSensor.registerRotationVectorObserver(this);
 	}
 
 	private void reset()
@@ -286,6 +321,7 @@ AccelerationObserver, MagnetObserver, GravityObserver
 		magneticSensor.removeMagneticObserver(this);
 		gyroscopeSensor.removeGyroscopeObserver(this);
 		accelorometerSensor.removeAccelerationObserver(this);
+		rotationVectorSensor.removeRotationVectorObserver(this);
 
 		acceleration = new float[3];
 		magnetic = new float[3];

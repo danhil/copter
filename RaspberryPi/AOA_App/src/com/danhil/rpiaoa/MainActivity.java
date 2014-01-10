@@ -45,7 +45,8 @@ public class MainActivity extends Activity implements Runnable, SensorsObserver 
 	private TextView statusView;
 	
 	private Sensors sensors;
-	private float[] gyro = {0, 0, 0};
+	//TODO Why is this vector 5 long?
+	private float[] rotationVector = {0, 0, 0, 0, 0};
 
 	private final BroadcastReceiver usbRecieve = new BroadcastReceiver() {
 
@@ -293,14 +294,14 @@ public class MainActivity extends Activity implements Runnable, SensorsObserver 
     {
 			statusView.setText("Sensors Changed");
             // Get a local copy of the sensor values
-            System.arraycopy(gyro, 0, this.gyro, 0,
+            System.arraycopy(gyro, 0, this.rotationVector, 0,
                             gyro.length);
             byte[] command = {};
-            float x = gyro[0];
-            String xString = Float.toString(x);
+            float z = gyro[2];
+            String xString = Float.toString(z);
             byte[] transmitX = xString.getBytes();
             sendCommand(command, transmitX);
-            statusView.setText(Float.toString(x));
+            statusView.setText(Float.toString(z));
     }
 
 
