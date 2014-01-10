@@ -234,6 +234,7 @@ public class MainActivity extends Activity implements Runnable {
 		public void onSensorChanged(SensorEvent event) {
 			float[] values = event.values;
 			float x = values[0];
+			double doubleX = Double.parseDouble(Float.valueOf(x).toString());	
 			float y = values[1];
 			// float z = values[2];
 			String logString;
@@ -241,8 +242,11 @@ public class MainActivity extends Activity implements Runnable {
 			// Ignoring orientation since the activity is using screenOrientation "nosensor"
 			try {
 				// TODO Clean up this mess, especially this. The actual concept is proved!
-				byte[] command = {0x3};
-				String xString = String.format("%.4f", x);//Float.toString(x);
+				byte[] command = {};
+				//String xString = String.format("%.4f", x);//
+				//x = -4.323343f;
+				String xString = Float.toString(x);
+				Log.d("xString", xString);
 				//byte[] transmitX = new byte[xString.length()];
 				//byte[] transmitX = {0x1,0x2};
 				byte[] transmitX = xString.getBytes();
@@ -509,13 +513,7 @@ public class MainActivity extends Activity implements Runnable {
 		Log.d("sendCommand", "Sent the command: \n" + new String(sendBuffer));
 		if (outputStream != null) {
 			try {
-				outputStream.write(sendBuffer);
-				try {
-					TimeUnit.SECONDS.sleep(1);
-				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
-				}
+				outputStream.write(sendBuffer, 0, 8);
 			} catch (IOException e) {
 				Log.e(TAG, "Failed Write Android->Acc", e);
 			}

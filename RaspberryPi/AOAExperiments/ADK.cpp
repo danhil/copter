@@ -24,7 +24,9 @@ int main()
 {
     printf("Inside Main");
     int res;
-    unsigned char buf[3];
+    int read_length = 8;
+    int read_timeout;
+    unsigned char buf[read_length];
 
 #ifdef RPI
     if (!bcm2835_init())
@@ -45,12 +47,14 @@ int main()
     printf("connected to the accessory");
 
     while(1){
-        res = acc.read(buf, 7, 10);
+        res = acc.read(buf, read_length, read_timeout);
         if(res > 0){
-            printf("%d bytes rcvd : %02X %02X %02X %02X %02X %02X %02X\n", res, buf[0], buf[1], buf[2], buf[3], buf[4], buf[5], buf[6]);
-            long long i = 0;
-            i = buf[6] + (buf[5] << 8) + (buf[4] << 16) + (buf[3] << 24) + (buf[2] << 32) + (buf[1] << 40) + (buf[0]<< 48);
-            printf("This is dec: %lld\n", i);
+            printf("%d bytes rcvd : %C %C %C %C\n", res, buf[0], buf[1], buf[2], buf[3]);
+            const char * dest_buf = (const char *)buf;
+            char *pNext;
+            double output;
+            output = strtod (dest_buf, &pNext);
+            printf("This is dec: %f\n", output);
 #ifdef RPI
             if(buf[0] == 0x01){
                 if(buf[1] == 1){
