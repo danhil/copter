@@ -58,8 +58,8 @@ class AndrOA {
         const char *version;
         const char *url;
         const char *serial;
-        uint8_t inEP;
-        uint8_t outEP;
+        uint8_t in_end_point;
+        uint8_t out_end_point;
         int versionProtocol;
 
         libusb_context *context;

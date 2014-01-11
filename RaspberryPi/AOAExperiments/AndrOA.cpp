@@ -170,7 +170,7 @@ int AndrOA::connect_to_accessory(void)
 int AndrOA::read(unsigned char *buffer, int len, unsigned int timeout)
 {
     int xferred;
-    int tmpRes = libusb_bulk_transfer(device_handle, inEP,
+    int tmpRes = libusb_bulk_transfer(device_handle, in_end_point,
             buffer, len, &xferred, timeout);
     if(tmpRes == 0){
         tmpRes = xferred;
@@ -199,7 +199,7 @@ int AndrOA::write(unsigned char *buffer, int len, unsigned int timeout)
      Also there is no possibility of performin I/O with multiple endpoints.
      */
     int xferred;
-    int tmpRes = libusb_bulk_transfer(device_handle, outEP, buffer,
+    int tmpRes = libusb_bulk_transfer(device_handle, out_end_point, buffer,
             len, &xferred, timeout);
     if(tmpRes == 0)
     {
@@ -333,17 +333,16 @@ int AndrOA::search_for_device(libusb_context *context, uint16_t *idVendor, uint1
 #ifdef DEBUG
                 printf("Android accessory protocol version: %d\n", versionProtocol);
 #endif
-                /* TODO Free devices and then device list
-                 * libusb_free_device_list(devices, 1);
-                 * Frees all devices in list;
-                 */
+                /* TODO Free devices and then device list */
 
-                break; //AOA found.
+                libusb_free_device_list(devices, 1);
+
+                break; // The andrid accessory was successfully found.
             }
         }
     }
 
-    // find end point number
+    // Find the usb endpint to connect to
     if( find_end_point(device) < 0 ){
         printf("Endpoint not found.\n");
         tmpRes = -1;
@@ -369,7 +368,7 @@ int AndrOA::find_end_point(libusb_device *device)
     libusb_get_config_descriptor (device, 0, &config);
 
     //initialize end point number
-    inEP = outEP = 0;
+    in_end_point = out_end_point = 0;
 
     //Evaluate first interface and endpoint descriptor
 #ifdef DEBUG
@@ -385,18 +384,18 @@ int AndrOA::find_end_point(libusb_device *device)
         epd = ifd.endpoint[i];
         if( epd.bmAttributes == 2 ) { //Bulk Transfer ?
             if( epd.bEndpointAddress & 0x80){ //IN
-                if( inEP == 0 )
-                    inEP = epd.bEndpointAddress;
+                if( in_end_point == 0 )
+                    in_end_point = epd.bEndpointAddress;
             }else{                            //OUT
-                if( outEP == 0 )
-                    outEP = epd.bEndpointAddress;
+                if( out_end_point == 0 )
+                    out_end_point = epd.bEndpointAddress;
             }
         }
 #ifdef DEBUG
         printf(" bEndpointAddress: %02X, bmAttributes:%02X\n", epd.bEndpointAddress, epd.bmAttributes);
 #endif
     }
-    if( outEP == 0 || inEP == 0) {
+    if( out_end_point == 0 || in_end_point == 0) {
         return -1;
     }else{
         return 0;

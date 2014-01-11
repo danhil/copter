@@ -40,21 +40,22 @@ int main()
     //Input pull-up
     bcm2835_gpio_set_pud(SW1, BCM2835_GPIO_PUD_UP);
 #endif
+
     signal(SIGINT, signal_callback_handler);
     printf("press ^C to exit program ...\n");
     printf("connecting to the accessory");
     acc.connect_to_accessory();
     printf("connected to the accessory");
-
+    // Protocol: 1B:type,2Blength;lengthB data;
+    double output;
     while(1){
         res = acc.read(buf, read_length, read_timeout);
         if(res > 0){
             printf("%d bytes rcvd : %C %C %C %C\n", res, buf[0], buf[1], buf[2], buf[3]);
             const char * dest_buf = (const char *)buf;
             char *pNext;
-            double output;
             output = strtod (dest_buf, &pNext);
-            printf("This is dec: %f\n", output);
+            printf("This is the recieved value: %f\n", output);
 #ifdef RPI
             if(buf[0] == 0x01){
                 if(buf[1] == 1){
@@ -65,6 +66,7 @@ int main()
             }
 #endif
         }else if(res == LIBUSB_ERROR_TIMEOUT ){
+            printf("The USB connection timed out");
         }else{
             break;
         }
@@ -78,6 +80,7 @@ int main()
         }else{
             buf[1] = 0;
         }
+        // Transmit logical pin in status.
         acc.write(buf, 2, 10);
 #endif
     }
