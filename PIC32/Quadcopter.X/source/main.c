@@ -2,7 +2,7 @@
  * File:   main.c
  * Author: Karl-Henrik Kihlgren
  *
- * Created on den 29 januari 2014, 16:49
+ * Created on 29 januari 2014, 16:49
  */
 
 #include <stdio.h>
@@ -78,6 +78,10 @@
 // Converts the 0-100% signal into the correct value for the
 // duty cycle register and sets that rgeister.
 #define Set_pwm( duty_cycle_in_percent ) ( OC1RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+//#define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+//#define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+//#define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+
 
 char forward = 1;
 char pwm_signal = 0;
@@ -141,8 +145,13 @@ int main(int argc, char** argv)
 
     //All Pin configurations should start here
 
-    //RPB4Rbits.RPB4R=5;                   //Sets RPB4 as OC1. (pin 11)
-    RPA0Rbits.RPA0R=5;
+    //RPB4Rbits.RPB4R=5;                    //Sets RPB4 as OC1. (pin 11)
+    RPA0Rbits.RPA0R=5;                      //Sets RPA0 as OC1. (pin 2)
+    //RPA1Rbits.RPA1R=5;                      //Sets RPA1 as OC2. (pin 3)
+    //RPB0Rbits.RPB0R=5;                      //Sets RPB0 as OC3. (pin 4)
+    //RPB1Rbits.RPB1R=5;                      //Sets RPB1 as OC4. (pin 5)
+
+
 
     //All Pin configuration should end here
 
@@ -158,6 +167,9 @@ int main(int argc, char** argv)
     // Configure the Output Compare channels for PWM mode using Timer3
     // setup output compare channel #1 - RD0
     OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
     
 
     // Configure Timer3 interrupt. Note that in PWM mode, the
@@ -179,11 +191,11 @@ int main(int argc, char** argv)
     OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
 
     OC1CONSET = 0x8000;             // Enable OC1
-
+    //OC2CONSET = 0x8000;             // Enable OC2
+    //OC3CONSET = 0x8000;             // Enable OC3
+    //OC4CONSET = 0x8000;             // Enable OC4
 
     
-
-
     //Set_pwm(50);
     
     //mPORTAClearBits(BIT_1);
@@ -205,10 +217,9 @@ int main(int argc, char** argv)
     return (EXIT_SUCCESS);
 }
 
-// Example code for Timer3 ISR
+// Timer3 ISR
 void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
 {
-    // Insert user code here
     //mPORTAToggleBits(BIT_1);
 
     if (forward)
@@ -227,5 +238,5 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
             forward = 1;
         }
     }
-    IFS0CLR = 0x4000;                   // Clearing Timer2 interrupt flag
+    IFS0CLR = 0x4000;                   // Clearing Timer3 interrupt flag
 }
