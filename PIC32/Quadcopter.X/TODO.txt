@@ -1,0 +1,28 @@
+USEFUL SITES
+
+http://www.microchip.com/TechDoc.aspx?type=ReferenceManuals
+
+http://www.microchip.com/wwwcategory/TaxonomySearch.aspx?show=Application%20Notes&ShowField=no
+
+http://www.microchip.com/CodeExamplesByFunc.aspx
+
+http://caroper.blogspot.se/2013/06/peripheral-pin-select-pps.html
+
+http://www.eedesignlabs.com/pic32-tutorial-1-blinking-led/
+
+http://www.eedesignlabs.com/pic32-tutorial-0-setting-up/
+
+
+TODO
+
+Change PWM duty cycle input signal from 0-100 into 0-1000 for better resolution.
+
+Set up 4 PWM outputs and test them.
+    Can all PWM outputs use the same timer? (Timer 2 or Timer 3)
+
+Set up I2C and test it.
+
+Test external 20 MHz crystal. Remember to change the configuration bits!
+
+Learn more about interrupts. For example, what is ip17??
+

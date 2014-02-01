@@ -18,6 +18,7 @@
                    displayName="Important Files"
                    projectFiles="false">
       <itemPath>Makefile</itemPath>
+      <itemPath>TODO.txt</itemPath>
     </logicalFolder>
   </logicalFolder>
   <sourceRootList>
