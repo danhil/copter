@@ -10,6 +10,52 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="10dip" />
-
-   
+    <TextView
+        android:id="@+id/tiltValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        />
+    
+    <SeekBar 
+        android:id="@+id/pValue"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        android:max="1000"
+        />
+     <TextView
+        android:id="@+id/pTextValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        />
+     
+      <SeekBar 
+        android:id="@+id/iValue"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        android:max="1000"
+        />
+       <TextView
+        android:id="@+id/iTextValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        />
+    
+        <SeekBar 
+        android:id="@+id/dValue"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        android:max="1000" />
+         <TextView
+        android:id="@+id/dTextValue"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip"
+        />
+      
 </LinearLayout>

@@ -17,6 +17,7 @@ import com.danhil.rpiaoa.observers.AccelerationObserver;
 import com.danhil.rpiaoa.observers.GravityObserver;
 import com.danhil.rpiaoa.observers.GyroscopeObserver;
 import com.danhil.rpiaoa.observers.MagnetObserver;
+import com.danhil.rpiaoa.observers.OrientationObserver;
 import com.danhil.rpiaoa.observers.RotationVectorObserver;
 import com.danhil.rpiaoa.observers.SensorsObserver;
 /**
@@ -25,21 +26,16 @@ import com.danhil.rpiaoa.observers.SensorsObserver;
  *
  */
 public class Sensors implements GyroscopeObserver,
-AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
+AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, OrientationObserver
 {
 	private static final boolean DEBUG = false;
 
 	private static final String tag = Sensors.class
 			.getSimpleName();
 	private static final int MIN_SAMPLE_COUNT = 30;
-	protected static File FILEPATH;
-	private static String fileGyro,fileAcc,fileMag, fileGrav, fileRot;
-	private static FileOutputStream foutGyro, foutAcc, foutMag, foutGrav, foutRot;
 
 	// Keep track of observers.
 	private ArrayList<SensorsObserver> sensorObservors;
-
-	private boolean hasInitialOrientation = false;
 
 	private Context context;
 
@@ -51,6 +47,8 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 	// Raw accelerometer data
 	private float[] acceleration = new float[]
 			{ 0, 0, 0 };
+	private float[] filteredAccelerationVals = new float[]
+			{ 0, 0, 0 };
 
 	private float[] gravity = new float[]
 			{ 0, 0, 0 };
@@ -58,10 +56,21 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 	// Raw accelerometer data
 	private float[] magnetic = new float[]
 			{ 0, 0, 0 };
-	
+	private float[] filteredMagneticVals = new float[]
+			{ 0, 0, 0 };
+
 	// Raw accelerometer data
 	private float[] rotation = new float[]
 			{ 0, 0, 0, 0, 0 };
+
+	// Raw orientation data
+	private float[] orientation = new float[]
+			{ 0, 0, 0 };
+
+	private float[] orientationVals = new float[3];
+
+	private float [] inRotation = new float[16];
+	private float [] inInclination = new float[16];
 
 	private int gravitySampleCount = 0;
 	private int magneticSampleCount = 0;
@@ -72,77 +81,24 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 	private Magnet magneticSensor;
 	private Accelorometer accelorometerSensor;
 	private RotationVector rotationVectorSensor;
+	private Orientation orientationSensor;
+	private FileOutputStream foutSensor;
+	private SensorManager sensorManager;
 	private String TAG = Sensors.class.getSimpleName();
+	static final float ALPHA = 0.25f;
 
-
-
-	public Sensors(Context context)
+	public Sensors(Context context, FileOutputStream foutSensor)
 	{
 		super();
-
 		this.context = context;
+		sensorManager = (SensorManager) this.context
+				.getSystemService(Context.SENSOR_SERVICE);
+		this.foutSensor = foutSensor;
 		sensorObservors = new ArrayList<SensorsObserver>();
-		FILEPATH = new File(Environment.getExternalStorageDirectory().getPath() + "/SensorSensing/");
-		FILEPATH.mkdirs(); 	
-		Log.d(TAG, "Path for gyrologs is :" + FILEPATH);
-		prepareFiles();
 		initSensors();
 		reset();
 		restart();
 	}
-
-	public void prepareFiles(){
-		Log.d("prepareFiles", "initialized");
-
-		//create a new file for gyro
-		try {
-			Log.e("Log","Write");
-			fileAcc = FILEPATH+"/"+getCurrentTimeStamp()+"-accl.txt";
-			foutAcc = new FileOutputStream(fileAcc,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-		//create a new file for accelorometer
-		try {
-			Log.e("Log","Write");
-			fileGyro = FILEPATH+"/"+getCurrentTimeStamp()+"-gyro.txt";
-			foutGyro = new FileOutputStream(fileGyro,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-		//create a new file for mag
-		try {
-			fileMag = FILEPATH+"/"+getCurrentTimeStamp()+"-mag.txt";
-			foutMag = new FileOutputStream(fileMag,true);
-		} catch (IOException e) {
-			Log.e("IOError",e.toString());
-		}
-
-		try {
-			fileGrav = FILEPATH+"/"+getCurrentTimeStamp()+"-mag.txt";
-			foutGrav = new FileOutputStream(fileGrav, true);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-		
-		try {
-			fileRot = FILEPATH+"/"+getCurrentTimeStamp()+"-rot.txt";
-			foutRot = new FileOutputStream(fileRot, true);
-		} catch (Exception e) {
-			// TODO: handle exception
-		}
-
-		Log.d("prepareFiles", "excecuted");
-	}
-
-	public static String getCurrentTimeStamp() {
-		Locale loc = Locale.getDefault();
-		SimpleDateFormat sdfDate = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss", loc);
-		Date now = new Date();
-		String strDate = sdfDate.format(now);
-		return strDate;
-	}
-
 
 	public void onStart()
 	{
@@ -155,10 +111,6 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 
 	}
 
-	public void onExit(){
-		finishFiles();
-
-	}
 
 	@Override
 	public void onAccelerationSensorChanged(float[] acceleration, long timeStamp, FileOutputStream out)
@@ -166,8 +118,22 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 		// Get a local copy of the raw magnetic values from the device sensor.
 		System.arraycopy(acceleration, 0, this.acceleration, 0,
 				acceleration.length);
+		filteredAccelerationVals = lowPass(this.acceleration, filteredAccelerationVals);
 		if(DEBUG)
 			writeToFile(out, acceleration);
+		notifySensorsObserver();
+	}
+
+	@Override
+	public void onOrientationSensorChanged(float[] orientation, long timestamp, FileOutputStream out)
+	{
+
+		timestampOld = timestamp;
+		System.arraycopy(orientation, 0, this.orientation, 0, orientation.length);
+		if(DEBUG)
+			writeToFile(out, rotation);
+
+		//notifySensorsObserver();
 	}
 
 	@Override
@@ -177,17 +143,8 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 		System.arraycopy(gravity, 0, this.gravity, 0,
 				gravity.length);
 
-		gravitySampleCount++;
-
 		if(DEBUG)
 			writeToFile(out, gravity);
-
-		if (gravitySampleCount > MIN_SAMPLE_COUNT
-				&& magneticSampleCount > MIN_SAMPLE_COUNT
-				&& !hasInitialOrientation)
-		{
-			calculateInitialOrientation();
-		}
 
 	}
 
@@ -197,43 +154,33 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 		// don't start until first accelerometer/magnetometer orientation has
 		// been acquired
 		Log.e(TAG, "Gyro changed");
-		if (!hasInitialOrientation)
-		{
-			return;
-		}
 		timestampOld = timestamp;
 		System.arraycopy(gyroscope, 0, this.gyroscope, 0, gyroscope.length);
 		if(DEBUG)
 			writeToFile(out, gyroscope);
-
-		//notifySensorsObserver();
 	}
 
 	@Override
 	public void onMagneticSensorChanged(float[] magnetic, long timeStamp, FileOutputStream out)
 	{
+		Log.e(TAG, "Magnet changed");
 		magneticSampleCount++;
 		System.arraycopy(magnetic, 0, this.magnetic, 0, magnetic.length);
+		filteredMagneticVals = lowPass(this.magnetic, filteredMagneticVals);
 		if(DEBUG)
 			writeToFile(out, magnetic);
 	}
-	
+
 	@Override
 	public void onRotationVectorSensorChanged(float[] rotation, long timestamp, FileOutputStream out)
 	{
 		// don't start until first accelerometer/magnetometer orientation has
 		// been acquired
-		Log.e(TAG, "Gyro changed");
-		if (!hasInitialOrientation)
-		{
-			return;
-		}
+		Log.e(TAG, "Rotation changed");
 		timestampOld = timestamp;
 		System.arraycopy(rotation, 0, this.rotation, 0, rotation.length);
 		if(DEBUG)
 			writeToFile(out, rotation);
-
-		notifySensorsObserver();
 	}
 
 	private void writeToFile(FileOutputStream out, float[] values){
@@ -253,13 +200,20 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 	/**
 	 * Notify observers with new measurements.
 	 */
-
 	private void notifySensorsObserver()
 	{
 		for (SensorsObserver a : sensorObservors)
-		{
-			a.onSensorsChanged(this.rotation,
-					this.timestampOld);
+		{	/* TODO: this is specific as of now to return the device orientation matrix to 
+			 * be able to measure the offset from y axis. Needs to be made more general */
+			if( filteredAccelerationVals!= null && filteredMagneticVals != null)
+			{
+				boolean success = sensorManager.getRotationMatrix(inRotation, inInclination, filteredAccelerationVals, filteredMagneticVals);
+				if (success){
+					sensorManager.getOrientation(inRotation, this.orientationVals);
+					a.onSensorsChanged(this.orientationVals,
+							this.timestampOld);
+				}
+			}
 		}
 	}
 
@@ -284,66 +238,52 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver
 		}
 	}
 
-	private void calculateInitialOrientation()
-	{
-		hasInitialOrientation = SensorManager.getRotationMatrix(
-				initialRotationMatrix, null, gravity, magnetic);
-
-		if (hasInitialOrientation)
-		{
-			gravitySensor.removeGravityObserver(this);
-	        magneticSensor.removeMagneticObserver(this);
-		}
-	}
 
 	private void initSensors()
 	{
-		gravitySensor = new Gravity(context, foutGrav);
-		magneticSensor = new Magnet(context, foutMag);
-		gyroscopeSensor = new Gyroscope(context, foutGyro);
-		accelorometerSensor = new Accelorometer(context, foutAcc);
-		rotationVectorSensor = new RotationVector(context, foutRot);
-		
+		//gravitySensor = new Gravity(context, foutSensor);
+		magneticSensor = new Magnet(context, foutSensor);
+		accelorometerSensor = new Accelorometer(context, foutSensor);
+		//gyroscopeSensor = new Gyroscope(context, foutSensor);
+		//rotationVectorSensor = new RotationVector(context, foutSensor);
+		//orientationSensor = new Orientation(context, foutSensor);
+
 	}
 
 	private void restart()
 	{
-		gravitySensor.registerGravityObserver(this);
+		//gravitySensor.registerGravityObserver(this);
 		magneticSensor.registerMagneticObserver(this);
-		gyroscopeSensor.registerGyroscopeObserver(this);
 		accelorometerSensor.registerAccelerationObserver(this);
-		rotationVectorSensor.registerRotationVectorObserver(this);
+		//gyroscopeSensor.registerGyroscopeObserver(this);
+		//rotationVectorSensor.registerRotationVectorObserver(this);
+		//orientationSensor.registerOrientationObserver(this);
 	}
 
 	private void reset()
 	{
-		gravitySensor.removeGravityObserver(this);
+		//gravitySensor.removeGravityObserver(this);
 		magneticSensor.removeMagneticObserver(this);
-		gyroscopeSensor.removeGyroscopeObserver(this);
 		accelorometerSensor.removeAccelerationObserver(this);
-		rotationVectorSensor.removeRotationVectorObserver(this);
+		//gyroscopeSensor.removeGyroscopeObserver(this);
+		//rotationVectorSensor.removeRotationVectorObserver(this);
+		//orientationSensor.registerOrientationObserver(this);
 
 		acceleration = new float[3];
 		magnetic = new float[3];
 		initialRotationMatrix = new float[9];
 		gravitySampleCount = 0;
 		magneticSampleCount = 0;
-
-		hasInitialOrientation = false;
-
-		finishFiles();
 	}
 
-	public void finishFiles(){
-		try{
-			//	foutAcc.flush();
-			foutAcc.close();
-			//	foutGyro.flush();
-			foutGyro.close();
-			//	foutMag.flush();
-			foutMag.close();
-		}catch(IOException e){
-			Log.e("IOException","Error on closing files");
+	protected float[] lowPass( float[] input, float[] output ) {
+		if ( output == null ) return input;
+
+		for ( int i=0; i<input.length; i++ ) {
+			output[i] = output[i] + ALPHA * (input[i] - output[i]);
 		}
+		return output;
 	}
+
+
 }
