@@ -8,17 +8,18 @@ package com.danhil.control.pid;
  */
 public class PIDController
 {
-    private float           currentOutput;
-    private float           currentSetpoint;
+    private double           currentOutput;
+    private double          currentSetpoint;
     private boolean         automaticMode;
-    private float           inputVal;
+    private double          inputVal;
     private long            sampleTime;
     private long            previousTime;
-    private float           previousInput;
-    private float           calculatedKi, calculatedKp, calculatedKd;
-    private float           minOutput,maxOutput;
+    private double           previousInput;
+    private double			currentInputValue;
+    private double           calculatedKi, calculatedKp, calculatedKd;
+    private double           minOutput,maxOutput;
     private ProcessType 	processType;
-    private float           setpointKp, setpointKi, setpointKd;
+    private double          setpointKp, setpointKi, setpointKd;
     
     private enum OperationMode
     {
@@ -36,6 +37,7 @@ public class PIDController
     {
         currentSetpoint = setPoint;
         automaticMode = false;
+        currentInputValue = 90;
         sampleTime = 50;
         
         setMode(OperationMode.AUTOMATIC);
@@ -43,13 +45,13 @@ public class PIDController
         setOutputLimits(0, 255); //Rpi pwm limits?
         reTune(Kp, Ki, Kd);
         previousTime = System.currentTimeMillis();
-    }     
+    }
      
-    public boolean computeControlSignal( float inputValue )
+    public void computeControlSignal(double currentInputValue)
     {
         if (!automaticMode)
         {
-            return false;
+            return;
         }
         
         long currentTime = System.currentTimeMillis();
@@ -58,18 +60,18 @@ public class PIDController
         if ( sampleTimeDelta >= sampleTime )
         {
             /* Compute controller setpoint error variables */
-            float input = inputValue;
-            float error = currentSetpoint - input;
+        	double input = currentInputValue;
+            double error = currentSetpoint - input;
             inputVal += ( calculatedKi * error );
 
             if ( inputVal > maxOutput )
                 inputVal = maxOutput;
             else if ( inputVal < minOutput )
                 inputVal = minOutput;
-            float dInput = ( input - previousInput );
+            double dInput = ( input - previousInput );
 
-            /* Compute Control Output */
-            float output = calculatedKp * error + inputVal - calculatedKd * dInput;
+            /* Compute Control Output, maybe needs to be a float value */
+            double output = calculatedKp * error + inputVal - calculatedKd * dInput;
 
             if ( output > maxOutput )
             {
@@ -81,10 +83,6 @@ public class PIDController
             currentOutput = output;
             previousInput = input;
             previousTime = currentTime;
-            return true;
-        } else
-        {
-            return false;
         }
     }
 
@@ -185,17 +183,17 @@ public class PIDController
         processType = type;
     }
 
-    public float getKp()
+    public double getKp()
     {
         return setpointKp;
     }
 
-    public float getKi()
+    public double getKi()
     {
         return setpointKi;
     }
 
-    public float getKd()
+    public double getKd()
     {
         return setpointKd;
     }
@@ -210,7 +208,7 @@ public class PIDController
         return processType;
     }
 
-    public float getOutput()
+    public double getOutput()
     {
         return currentOutput;
     }
@@ -219,4 +217,5 @@ public class PIDController
     {
         currentSetpoint = setpoint;
     }
+
 }

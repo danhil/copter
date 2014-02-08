@@ -13,6 +13,7 @@ import java.util.Locale;
 import com.android.future.usb.UsbAccessory;
 import com.android.future.usb.UsbManager;
 
+import com.danhil.control.pid.PIDController;
 import com.danhil.rpiaoa.R;
 import com.danhil.rpiaoa.observers.SensorsObserver;
 import com.danhil.rpiaoa.sensors.Sensors;
@@ -52,14 +53,16 @@ public class MainActivity extends Activity implements Runnable, SensorsObserver 
 
 	private TextView statusView;
 	private TextView tiltView;
+	private TextView controlView;
 	private TextView pValue;
 	private TextView iValue;
 	private TextView dValue;
 	
+	private PIDController PID;
 	private double currPValue;
 	private double currIValue;
 	private double currDValue;
-	private final double P_SCALE = 100;
+	private final double P_SCALE = 100; // 1ms
 	private final double I_SCALE = 100;
 	private final double D_SCALE = 100;
 	
@@ -130,13 +133,15 @@ public class MainActivity extends Activity implements Runnable, SensorsObserver 
 			accessoryForMobile = (UsbAccessory) getLastNonConfigurationInstance();
 			openAccessory(accessoryForMobile);
 		}
-
+		
+		PID = new PIDController(90, 1, 1, 1);
 		setContentView(R.layout.activity_main);
 		statusView = (TextView) findViewById(R.id.statusIndication);
 		tiltView = (TextView) findViewById(R.id.tiltValue);
-		pBar = (SeekBar) findViewById(R.id.pValue);
+		controlView = (TextView) findViewById(R.id.controlValue);
 		
 		pValue = (TextView) findViewById(R.id.pTextValue);
+		pBar = (SeekBar) findViewById(R.id.pValue);
 		pBar.setOnSeekBarChangeListener(
 				new OnSeekBarChangeListener() {
 					
@@ -472,12 +477,15 @@ public class MainActivity extends Activity implements Runnable, SensorsObserver 
 		System.arraycopy(inputSensorValues, 0, this.inputSensorValues, 0,
 				inputSensorValues.length);
 		byte[] command = {};
-		float z = inputSensorValues[1]; //This is the pitch in radians
-		double deg = Math.toDegrees(z);
-		String xString = Float.toString(z);
-		byte[] transmitX = xString.getBytes();
+		float z = Math.abs(inputSensorValues[1]); //This is the pitch in radians
+		PID.computeControlSignal(z*(180/Math.PI));
+		double controlOutput = PID.getOutput();
+		String controlOutputString = Double.toString(controlOutput);
+		byte[] transmitX = controlOutputString.getBytes();
 		sendCommand(command, transmitX);
-		statusView.setText(Double.toString(z*(180/Math.PI)));
+		tiltView.setText(Double.toString(z*(180/Math.PI)));
+		controlView.setText(controlOutputString);
+		
 	}
 
 
