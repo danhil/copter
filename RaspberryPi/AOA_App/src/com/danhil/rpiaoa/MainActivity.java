@@ -18,7 +18,6 @@ import com.danhil.rpiaoa.R;
 import com.danhil.rpiaoa.observers.SensorsObserver;
 import com.danhil.rpiaoa.sensors.Sensors;
 
-import android.app.*;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -28,37 +27,26 @@ import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
+import android.support.v4.app.FragmentActivity;
+import android.support.v4.app.Fragment;
+import android.support.v4.app.FragmentTransaction;
+import android.support.v4.app.FragmentManager;
 import android.util.Log;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 
-public class MainActivity extends Activity implements SensorsObserver {
+public class MainActivity extends FragmentActivity implements SensorsObserver {
 
 	private static final String TAG = MainActivity.class.getSimpleName();
 	protected static File FILEPATH;
 	private static String fileSensors;
 	private static FileOutputStream foutSensors;
 	private USBcontroller usbController;
-
-	private SeekBar pBar;
-	private SeekBar iBar;
-	private SeekBar dBar;
-
-	private TextView statusView;
-	private TextView tiltView;
-	private TextView controlView;
-	private TextView pValue;
-	private TextView iValue;
-	private TextView dValue;
-	
 	private PIDController PID;
-	private double currPValue;
-	private double currIValue;
-	private double currDValue;
-	private final double P_SCALE = 100; // 1ms
-	private final double I_SCALE = 100;
-	private final double D_SCALE = 100;
+
+
+
 	
 	
 
@@ -73,6 +61,11 @@ public class MainActivity extends Activity implements SensorsObserver {
 	public void onCreate(Bundle savedInstanceState)
 	{
 		super.onCreate(savedInstanceState);
+		if (savedInstanceState == null) {
+            Fragment newFragment = new ControllerFragment();
+            FragmentTransaction ft = getSupportFragmentManager().beginTransaction();
+            ft.add(R.id.fragment_container, newFragment).commit();
+        }
 		/* init the sensors */
 		FILEPATH = new File(Environment.getExternalStorageDirectory().getPath() + "/SensorSensing/");
 		FILEPATH.mkdirs(); 	
@@ -83,76 +76,8 @@ public class MainActivity extends Activity implements SensorsObserver {
 		usbController = new USBcontroller(this, handler);
 		PID = new PIDController(90, 1, 1, 1);
 		setContentView(R.layout.activity_main);
-		statusView = (TextView) findViewById(R.id.statusIndication);
-		tiltView = (TextView) findViewById(R.id.tiltValue);
-		controlView = (TextView) findViewById(R.id.controlValue);
-		
-		pValue = (TextView) findViewById(R.id.pTextValue);
-		pBar = (SeekBar) findViewById(R.id.pValue);
-		pBar.setOnSeekBarChangeListener(
-				new OnSeekBarChangeListener() {
-					
-					@Override
-					public void onStopTrackingTouch(SeekBar seekBar) {
-						pValue.setText(String.valueOf(currPValue));
-						/*TODO Set the resulting value to p in the controller*/
-					}
-					
-					@Override
-					public void onStartTrackingTouch(SeekBar seekBar) {}
-					
-					@Override
-					public void onProgressChanged(SeekBar seekBar, int progress,
-							boolean fromUser) {
-						currPValue = ((double)progress)/P_SCALE;
-					}
-				});
-		
-		iValue = (TextView) findViewById(R.id.iTextValue);
-		iBar = (SeekBar) findViewById(R.id.iValue);
-		iBar.setOnSeekBarChangeListener(
-				new OnSeekBarChangeListener() {
-					@Override
-					public void onStopTrackingTouch(SeekBar seekBar) {
-						iValue.setText(String.valueOf(currIValue));
-						
-					}
-					
-					@Override
-					public void onStartTrackingTouch(SeekBar seekBar) {}
-					
-					@Override
-					public void onProgressChanged(SeekBar seekBar, int progress,
-							boolean fromUser) {
-						currIValue = ((double)progress)/I_SCALE;
-						
-					}
-				});
-		
-		dValue = (TextView) findViewById(R.id.dTextValue);
-		dBar = (SeekBar) findViewById(R.id.dValue);
-		dBar.setOnSeekBarChangeListener(
-				new OnSeekBarChangeListener() {
-					
-					@Override
-					public void onStopTrackingTouch(SeekBar seekBar) {
-						dValue.setText(String.valueOf(currDValue));
-					}
-					
-					@Override
-					public void onStartTrackingTouch(SeekBar seekBar) {}
-					
-					@Override
-					public void onProgressChanged(SeekBar seekBar, int progress,
-							boolean fromUser) {
-						currDValue = ((double)progress)/D_SCALE;
-					}
-				});
-		
-		pValue.setText(String.valueOf(pBar.getProgress()));
-		iValue.setText(String.valueOf(iBar.getProgress()));
-		dValue.setText(String.valueOf(dBar.getProgress()));
-		setConnectedStatus(false);
+
+	
 	}
 
 	public void prepareFileStreams()
@@ -189,8 +114,6 @@ public class MainActivity extends Activity implements SensorsObserver {
 
 	}
 
-	
-
 	@Override
 	public void onPause()
 	{
@@ -223,16 +146,7 @@ public class MainActivity extends Activity implements SensorsObserver {
 
 	
 
-	private void setConnectedStatus(boolean enable)
-	{
-		if (enable)
-		{
-			statusView.setText("Connected.");
-		} else
-		{
-			statusView.setText("Not connected.");
-		}
-	}
+	
 
 	private static final int MESSAGE_LED = 1;
 
@@ -273,8 +187,8 @@ public class MainActivity extends Activity implements SensorsObserver {
 		String controlOutputString = Double.toString(controlOutput);
 		byte[] transmitX = controlOutputString.getBytes();
 		usbController.sendCommand(command, transmitX);
-		tiltView.setText(Double.toString(z*(180/Math.PI)));
-		controlView.setText(controlOutputString);
+		//tiltView.setText(Double.toString(z*(180/Math.PI)));
+		//controlView.setText(controlOutputString);
 		
 	}
 

@@ -1,6 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <string name="app_name">RPIAOA</string>
     <string name="action_settings">Settings</string>
     <string name="hello">RPIADK is here!</string>
+    <string name="title_activity_controller_fragment">ControllerFragment</string>
+    <string name="hello_world">Hello world!</string>
+
 </resources>
