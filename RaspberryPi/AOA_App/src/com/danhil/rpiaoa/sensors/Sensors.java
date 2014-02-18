@@ -29,9 +29,7 @@ public class Sensors implements GyroscopeObserver,
 AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, OrientationObserver
 {
 	private static final boolean DEBUG = false;
-
-	private static final String tag = Sensors.class
-			.getSimpleName();
+	private static final String tag = Sensors.class.getSimpleName();
 	private static final int MIN_SAMPLE_COUNT = 30;
 
 	// Keep track of observers.
@@ -111,7 +109,10 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 
 	}
 
-
+	/**
+	 * The following classes handle the sensor observers for creating sensor fusions
+	 * that are to be returned to the class handleing the sensorsoberserver.
+	 */
 	@Override
 	public void onAccelerationSensorChanged(float[] acceleration, long timeStamp, FileOutputStream out)
 	{
@@ -127,32 +128,24 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 	@Override
 	public void onOrientationSensorChanged(float[] orientation, long timestamp, FileOutputStream out)
 	{
-
 		timestampOld = timestamp;
 		System.arraycopy(orientation, 0, this.orientation, 0, orientation.length);
 		if(DEBUG)
 			writeToFile(out, rotation);
-
-		//notifySensorsObserver();
 	}
 
 	@Override
 	public void onGravitySensorChanged(float[] gravity, long timeStamp, FileOutputStream out)
 	{
-		// Get a local copy of the raw magnetic values from the device sensor.
 		System.arraycopy(gravity, 0, this.gravity, 0,
 				gravity.length);
-
 		if(DEBUG)
 			writeToFile(out, gravity);
-
 	}
 
 	@Override
 	public void onGyroscopeSensorChanged(float[] gyroscope, long timestamp, FileOutputStream out)
 	{
-		// don't start until first accelerometer/magnetometer orientation has
-		// been acquired
 		Log.e(TAG, "Gyro changed");
 		timestampOld = timestamp;
 		System.arraycopy(gyroscope, 0, this.gyroscope, 0, gyroscope.length);
@@ -174,8 +167,6 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 	@Override
 	public void onRotationVectorSensorChanged(float[] rotation, long timestamp, FileOutputStream out)
 	{
-		// don't start until first accelerometer/magnetometer orientation has
-		// been acquired
 		Log.e(TAG, "Rotation changed");
 		timestampOld = timestamp;
 		System.arraycopy(rotation, 0, this.rotation, 0, rotation.length);
@@ -189,7 +180,7 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 		float y = values[1];
 		float z = values[2];
 		try {
-			logString = "" + " " + x + " " + y + " " + z + "\n";
+			logString = "" + " " + x + " " + y + " " + z + "\r\n";
 			out.write(logString.getBytes());
 			out.flush();
 		} catch (IOException e) {
@@ -203,22 +194,21 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 	private void notifySensorsObserver()
 	{
 		for (SensorsObserver a : sensorObservors)
-		{	/* TODO: this is specific as of now to return the device orientation matrix to 
+		{	
+			/* TODO: this is specific as of now to return the device orientation matrix to 
 			 * be able to measure the offset from y axis. Needs to be made more general */
 			if( filteredAccelerationVals!= null && filteredMagneticVals != null)
 			{
 				boolean success = sensorManager.getRotationMatrix(inRotation, inInclination, filteredAccelerationVals, filteredMagneticVals);
 				if (success){
 					sensorManager.getOrientation(inRotation, this.orientationVals);
-					a.onSensorsChanged(this.orientationVals,
-							this.timestampOld);
+					a.onSensorsChanged(this.orientationVals, this.timestampOld);
 				}
 			}
 		}
 	}
 
-	public void registerSensorsObserver(
-			SensorsObserver observer)
+	public void registerSensorsObserver(SensorsObserver observer)
 	{
 		// Only register the observer if it is not already registered.
 		int i = sensorObservors.indexOf(observer);
@@ -228,8 +218,8 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 		}
 
 	}
-	public void removeSensorsObserver(
-			SensorsObserver observer)
+	
+	public void removeSensorsObserver(SensorsObserver observer)
 	{
 		int i = sensorObservors.indexOf(observer);
 		if (i >= 0)
@@ -241,6 +231,9 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 
 	private void initSensors()
 	{
+		/*TODO For now I am only using mag and acc to get rotation matrix.
+		 * In the future a fusion sensor will be utilized
+		 */
 		//gravitySensor = new Gravity(context, foutSensor);
 		magneticSensor = new Magnet(context, foutSensor);
 		accelorometerSensor = new Accelorometer(context, foutSensor);
@@ -276,7 +269,7 @@ AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, O
 		magneticSampleCount = 0;
 	}
 
-	protected float[] lowPass( float[] input, float[] output ) {
+	private float[] lowPass( float[] input, float[] output ) {
 		if ( output == null ) return input;
 
 		for ( int i=0; i<input.length; i++ ) {

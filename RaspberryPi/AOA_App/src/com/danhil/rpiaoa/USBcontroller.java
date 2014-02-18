@@ -19,7 +19,7 @@ import com.android.future.usb.UsbAccessory;
 import com.android.future.usb.UsbManager;
 
 public class USBcontroller implements Runnable {
-	
+
 	private PendingIntent permissionIntent;
 	private boolean requestPermissonPending;
 	private UsbManager usbManagerMobile;
@@ -49,9 +49,9 @@ public class USBcontroller implements Runnable {
 		filter.addAction(ACTION_USB_PERMISSION);
 		filter.addAction(UsbManager.ACTION_USB_ACCESSORY_DETACHED);
 		parentContext.registerReceiver(usbRecieve, filter);
-		
+
 	}
-	
+
 	private final BroadcastReceiver usbRecieve = new BroadcastReceiver(){
 
 		@Override
@@ -84,7 +84,7 @@ public class USBcontroller implements Runnable {
 			}
 		}
 	};
-	
+
 	public void restartAccessory()
 	{
 		if (inputStream != null && outputStream != null)
@@ -114,7 +114,7 @@ public class USBcontroller implements Runnable {
 		}
 
 	}
-	
+
 	private void openAccessory(UsbAccessory accessory)
 	{
 		fileDescriptor = usbManagerMobile.openAccessory(accessory);
@@ -157,19 +157,19 @@ public class USBcontroller implements Runnable {
 			accessoryForMobile = null;
 		}
 	}
-	
+
 	public void unregisterController()
 	{
 		context.unregisterReceiver(usbRecieve);
 	}
-	
+
 	private void sendToHandler(int i)
 	{
 		Message m = Message.obtain(handler, i);
 		m.arg1 = (int) i;
 		handler.sendMessage(m);
 	}
-	
+
 	@Override
 	public void run()
 	{
@@ -217,47 +217,47 @@ public class USBcontroller implements Runnable {
 
 		}
 	}
-	
+
 	// Android -> Accessory
-		public void sendCommand(byte command, byte value)
+	public void sendCommand(byte command, byte value)
+	{
+		byte[] sendBuffer = new byte[2];
+		sendBuffer[0] = command;
+		sendBuffer[1] = value;
+		if (outputStream != null)
 		{
-			byte[] sendBuffer = new byte[2];
-			sendBuffer[0] = command;
-			sendBuffer[1] = value;
-			if (outputStream != null)
+			try 
 			{
-				try 
-				{
-					outputStream.write(sendBuffer);
-				} catch (IOException e) {
-					Log.e(TAG, "Failed Write Android->Acc", e);
-				}
+				outputStream.write(sendBuffer);
+			} catch (IOException e) {
+				Log.e(TAG, "Failed Write Android->Acc", e);
 			}
 		}
+	}
 
-		public void sendCommand(byte[] command, byte[] value)
+	public void sendCommand(byte[] command, byte[] value)
+	{
+		byte[] sendBuffer = concat(command,value);
+		Log.d("sendCommand", "Sent the command: \n" + new String(sendBuffer));
+		if (outputStream != null)
 		{
-			byte[] sendBuffer = concat(command,value);
-			Log.d("sendCommand", "Sent the command: \n" + new String(sendBuffer));
-			if (outputStream != null)
+			try 
 			{
-				try 
-				{
-					outputStream.write(sendBuffer, 0, sendBuffer.length);
-				} catch (IOException e) {
-					Log.e(TAG, "Failed Write Android->Acc", e);
-				}
+				outputStream.write(sendBuffer, 0, sendBuffer.length);
+			} catch (IOException e) {
+				Log.e(TAG, "Failed Write Android->Acc", e);
 			}
 		}
+	}
 
-		byte[] concat(byte[] A, byte[] B) {
-			int aLen = A.length;
-			int bLen = B.length;
-			byte[] res= new byte[aLen+bLen];
-			System.arraycopy(A, 0, res, 0, aLen);
-			System.arraycopy(B, 0, res, aLen, bLen);
-			return res;
-		}
+	byte[] concat(byte[] A, byte[] B) {
+		int aLen = A.length;
+		int bLen = B.length;
+		byte[] res= new byte[aLen+bLen];
+		System.arraycopy(A, 0, res, 0, aLen);
+		System.arraycopy(B, 0, res, aLen, bLen);
+		return res;
+	}
 
 
 }

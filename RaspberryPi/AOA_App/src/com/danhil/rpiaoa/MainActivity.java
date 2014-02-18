@@ -1,40 +1,23 @@
 package com.danhil.rpiaoa;
 
 import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
-
-
-import com.android.future.usb.UsbAccessory;
-import com.android.future.usb.UsbManager;
-
 import com.danhil.control.pid.PIDController;
 import com.danhil.rpiaoa.R;
 import com.danhil.rpiaoa.observers.SensorsObserver;
 import com.danhil.rpiaoa.sensors.Sensors;
-
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Message;
-import android.os.ParcelFileDescriptor;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
-import android.support.v4.app.FragmentManager;
 import android.util.Log;
-import android.widget.SeekBar;
-import android.widget.SeekBar.OnSeekBarChangeListener;
-import android.widget.TextView;
 
 public class MainActivity extends FragmentActivity implements SensorsObserver {
 
@@ -45,17 +28,9 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 	private USBcontroller usbController;
 	private PIDController PID;
 
-
-
-	
-	
-
 	private Sensors sensors;
 	//TODO Why is this vector 5 long?
 	private float[] inputSensorValues = {0, 0, 0};
-
-	
-	
 
 	@Override
 	public void onCreate(Bundle savedInstanceState)
@@ -76,8 +51,6 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		usbController = new USBcontroller(this, handler);
 		PID = new PIDController(90, 1, 1, 1);
 		setContentView(R.layout.activity_main);
-
-	
 	}
 
 	public void prepareFileStreams()
@@ -96,6 +69,7 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		Log.d("prepareFiles", "excecuted");
 	}
 
+	
 	public static String getCurrentTimeStamp()
 	{
 		Locale loc = Locale.getDefault();
@@ -111,7 +85,6 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		super.onResume();
 		sensors.onStart();
 		usbController.restartAccessory();
-
 	}
 
 	@Override
@@ -124,7 +97,6 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 	}
 
 
-
 	@Override
 	public void onDestroy()
 	{
@@ -134,6 +106,7 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		super.onDestroy();
 	}
 
+	
 	public void finishFiles()
 	{
 		try{
@@ -145,13 +118,7 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 	}
 
 	
-
-	
-
 	private static final int MESSAGE_LED = 1;
-
-	
-
 	// Change the view in the UI thread, handler is static so no leaks occur
 	private static Handler handler = new Handler()
 	{

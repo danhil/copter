@@ -20,7 +20,7 @@ public class RotationVector implements SensorEventListener
 	private Context context;
 	private SensorManager sensorManager;
 	private float[] RotationVector = new float[5];
-	// Keep track of the moest recent event.
+	// Keep track of the most recent event.
 	private long timeStamp = 0;
 	private FileOutputStream fOut;
 
