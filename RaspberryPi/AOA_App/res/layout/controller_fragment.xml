@@ -8,13 +8,8 @@
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context=".ControllerFragment" >
-
-   <TextView
-        android:id="@+id/statusIndication"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_margin="10dip" />
-    <TextView
+    
+        <TextView
         android:id="@+id/tiltValue"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -26,6 +21,14 @@
         android:layout_height="wrap_content"
         android:layout_margin="10dip"
         />
+    
+
+   <TextView
+        android:id="@+id/statusIndication"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="10dip" />
+   
     
     <SeekBar 
         android:id="@+id/pValue"

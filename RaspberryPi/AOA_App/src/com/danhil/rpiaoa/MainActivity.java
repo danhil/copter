@@ -18,6 +18,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentTransaction;
 import android.util.Log;
+import android.widget.TextView;
 
 public class MainActivity extends FragmentActivity implements SensorsObserver {
 
@@ -27,6 +28,7 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 	private static FileOutputStream foutSensors;
 	private USBcontroller usbController;
 	private PIDController PID;
+	private ControllerFragment fragment_obj;
 
 	private Sensors sensors;
 	//TODO Why is this vector 5 long?
@@ -51,6 +53,7 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		usbController = new USBcontroller(this, handler);
 		PID = new PIDController(90, 1, 1, 1);
 		setContentView(R.layout.activity_main);
+		
 	}
 
 	public void prepareFileStreams()
@@ -83,6 +86,8 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 	public void onResume()
 	{
 		super.onResume();
+		fragment_obj = (ControllerFragment)getSupportFragmentManager().
+                findFragmentById(R.id.fragment_container);
 		sensors.onStart();
 		usbController.restartAccessory();
 	}
@@ -154,8 +159,8 @@ public class MainActivity extends FragmentActivity implements SensorsObserver {
 		String controlOutputString = Double.toString(controlOutput);
 		byte[] transmitX = controlOutputString.getBytes();
 		usbController.sendCommand(command, transmitX);
-		//tiltView.setText(Double.toString(z*(180/Math.PI)));
-		//controlView.setText(controlOutputString);
+		fragment_obj.updateTiltView(Double.toString(z*(180/Math.PI)));
+		fragment_obj.updateControlView(controlOutputString);
 		
 	}
 

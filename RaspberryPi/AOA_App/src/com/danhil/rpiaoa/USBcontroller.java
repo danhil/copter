@@ -243,7 +243,7 @@ public class USBcontroller implements Runnable {
 		{
 			try 
 			{
-				outputStream.write(sendBuffer, 0, sendBuffer.length);
+				outputStream.write(sendBuffer, 0, 3);
 			} catch (IOException e) {
 				Log.e(TAG, "Failed Write Android->Acc", e);
 			}

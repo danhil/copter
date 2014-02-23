@@ -16,7 +16,7 @@ AndrOA acc("daniel.hilton",
         "RpiDev",
         "0.0",
         "http://github.com/danhil",
-        "0000000012345678") ;
+        "0000000012345678");
 
 void signal_callback_handler(int signum);
 
@@ -51,11 +51,11 @@ int main()
     while(1){
         res = acc.read(buf, read_length, read_timeout);
         if(res > 0){
-            printf("%d bytes rcvd : %C %C %C %C\n", res, buf[0], buf[1], buf[2], buf[3]);
+            int n = sizeof(buf)/sizeof(buf[0]);
             const char * dest_buf = (const char *)buf;
             char *pNext;
             output = strtod (dest_buf, &pNext);
-            printf("This is the recieved value: %f\n", output);
+            printf("This is the recieved value: %g\n", output);
 #ifdef RPI
             if(buf[0] == 0x01){
                 if(buf[1] == 1){

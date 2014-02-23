@@ -44,9 +44,7 @@ AndrOA::~AndrOA()
 }
 
 /*
- *
- * Functons
- *
+ * Functions
  */
 
 /*

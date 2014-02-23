@@ -23,7 +23,8 @@ import com.danhil.rpiaoa.observers.SensorsObserver;
 /**
  * Uses the observer pattern to register obervers to sensors.
  * @author fladnag
- *
+ * This module provides support for sensor fusion, the results can the be distrobuted
+ * to the listning modules.
  */
 public class Sensors implements GyroscopeObserver,
 AccelerationObserver, MagnetObserver, GravityObserver, RotationVectorObserver, OrientationObserver
