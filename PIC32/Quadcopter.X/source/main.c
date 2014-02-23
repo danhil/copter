@@ -90,26 +90,31 @@
 // Converts the 0-100% signal into the correct value for the
 // duty cycle register and sets that rgeister.
 #define Set_pwm( duty_cycle_in_percent ) ( OC1RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-//#define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-//#define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-//#define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+#define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+#define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+#define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 
 
 
-/*
-#define SYS_CLOCK (50000000L)
+
+#define SYS_CLOCK (48000000L)
 
 #define GetSystemClock()            (SYS_CLOCK)
 #define GetPeripheralClock()        (SYS_CLOCK/2)
 #define GetInstructionClock()       (SYS_CLOCK)
-#define I2C_CLOCK_FREQ              5000
+#define I2C_CLOCK_FREQ              400000
 
 // EEPROM Constants
 #define EEPROM_I2C_BUS              I2C1
-#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
+#define EEPROM_ADDRESS              0x68        // 0b1101000 MPU6050 address (gyro)
+//#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
 
-*/
 
+
+
+BOOL StartTransfer( BOOL restart );
+BOOL TransmitOneByte( UINT8 data );
+void StopTransfer( void );
 
 char forward = 1;
 char pwm_signal = 0;
@@ -175,16 +180,28 @@ int main(int argc, char** argv)
 
     //RPB4Rbits.RPB4R=5;                    //Sets RPB4 as OC1. (pin 11)
     RPA0Rbits.RPA0R=5;                      //Sets RPA0 as OC1. (pin 2)
-    //RPA1Rbits.RPA1R=5;                      //Sets RPA1 as OC2. (pin 3)
-    //RPB0Rbits.RPB0R=5;                      //Sets RPB0 as OC3. (pin 4)
-    //RPB1Rbits.RPB1R=5;                      //Sets RPB1 as OC4. (pin 5)
+    RPA1Rbits.RPA1R=5;                      //Sets RPA1 as OC2. (pin 3)
+    RPB0Rbits.RPB0R=5;                      //Sets RPB0 as OC3. (pin 4)
+    RPB1Rbits.RPB1R=5;                      //Sets RPB1 as OC4. (pin 5)
 
 	
     //All Pin configuration should end here
 
     SYSKEY = 0;                                   // Locks the pin Configurations
 
-    //End Peripheral Pin Select
+    //End of Peripheral Pin Select
+
+    // Variable declarations
+    UINT8               i2cData[10];
+    I2C_7_BIT_ADDRESS   SlaveAddress;
+    int                 Index;
+    int                 DataSz;
+    UINT32              actualClock;
+    BOOL                Acknowledged;
+    BOOL                Success = TRUE;
+    UINT8               i2cbyte;
+    
+    // End of Variable declarations
 
 
     INTEnableSystemMultiVectoredInt();      // Enable system wide interrupt to
@@ -194,9 +211,9 @@ int main(int argc, char** argv)
     // Configure the Output Compare channels for PWM mode using Timer3
     // setup output compare channel #1 - RD0
     OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
     
 
     // Configure Timer3 interrupt. Note that in PWM mode, the
@@ -218,11 +235,144 @@ int main(int argc, char** argv)
     OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
 
     OC1CONSET = 0x8000;             // Enable OC1
-    //OC2CONSET = 0x8000;             // Enable OC2
-    //OC3CONSET = 0x8000;             // Enable OC3
-    //OC4CONSET = 0x8000;             // Enable OC4
+    OC2CONSET = 0x8000;             // Enable OC2
+    OC3CONSET = 0x8000;             // Enable OC3
+    OC4CONSET = 0x8000;             // Enable OC4
 
-    
+
+    // For debugging
+    mPORTBClearBits(BIT_2);
+    mPORTBSetPinsDigitalOut(BIT_2);
+
+    mPORTBClearBits(BIT_3);
+    mPORTBSetPinsDigitalOut(BIT_3);
+
+
+
+    //mPORTBSetBits(BIT_2);
+
+    // Initialize debug messages (when supported)
+    //DBINIT();
+
+
+    // Set the I2C baudrate
+    actualClock = I2CSetFrequency(EEPROM_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
+    if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
+    {
+        //DBPRINTF("Error: I2C1 clock frequency (%u) error exceeds 10%%.\n", (unsigned)actualClock);
+        //mPORTBSetBits(BIT_2);
+    }
+
+    // Enable the I2C bus
+    I2CEnable(EEPROM_I2C_BUS, TRUE);
+
+
+    // Read the data
+
+    // Initialize the data buffer
+    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_WRITE);
+    i2cData[0] = SlaveAddress.byte;
+    i2cData[1] = 0x75;                 // MPU6050 data address to read (0x75 = WHO_AM_I which contains 0x68)
+    DataSz = 2;
+
+    // Start the transfer to read the EEPROM.
+    if( !StartTransfer(FALSE) )
+    {
+        //mPORTBSetBits(BIT_3);
+        while(1);
+    }
+
+    // Address the EEPROM.
+    Index = 0;
+    while( Success & (Index < DataSz) )
+    {
+        if(Index == 0)
+            mPORTBSetBits(BIT_2);
+        else if(Index == 1)
+            mPORTBSetBits(BIT_3);
+
+
+        // Transmit a byte
+        if (TransmitOneByte(i2cData[Index]))
+        {
+            // Advance to the next byte
+            Index++;
+        }
+        else
+        {
+            //mPORTBSetBits(BIT_2);
+            Success = FALSE;
+        }
+
+        // Verify that the byte was acknowledged
+        if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
+        {
+            //mPORTBSetBits(BIT_3);
+            //DBPRINTF("Error: Sent byte was not acknowledged\n");
+            Success = FALSE;
+        }
+    }
+
+    // Restart and send the EEPROM's internal address to switch to a read transfer
+    if(Success)
+    {
+        // Send a Repeated Started condition
+        if( !StartTransfer(TRUE) )
+        {
+            while(1);
+        }
+
+        // Transmit the address with the READ bit set
+        I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_READ);
+        if (TransmitOneByte(SlaveAddress.byte))
+        {
+            // Verify that the byte was acknowledged
+            if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
+            {
+                //DBPRINTF("Error: Sent byte was not acknowledged\n");
+                Success = FALSE;
+            }
+        }
+        else
+        {
+            Success = FALSE;
+        }
+    }
+
+    // Read the data from the desired address
+    if(Success)
+    {
+        if(I2CReceiverEnable(EEPROM_I2C_BUS, TRUE) == I2C_RECEIVE_OVERFLOW)
+        {
+            //DBPRINTF("Error: I2C Receive Overflow\n");
+            Success = FALSE;
+        }
+        else
+        {
+            while(!I2CReceivedDataIsAvailable(EEPROM_I2C_BUS));
+            i2cbyte = I2CGetByte(EEPROM_I2C_BUS);
+        }
+
+    }
+
+    // End the transfer (stop here if an error occured)
+    StopTransfer();
+    if(!Success)
+    {
+        while(1);
+    }
+
+    // If the correct data has been recieved then flash the LED connected to RB2
+    if( i2cbyte == 0x68 )
+    {
+        //mPORTBSetBits(BIT_2);
+
+        mPORTBClearBits(BIT_2);
+    }
+
+
+
+
     //Set_pwm(50);
     
     //mPORTAClearBits(BIT_1);
@@ -251,7 +401,13 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
 
     if (forward)
     {
-        Set_pwm(pwm_signal++);
+        Set_pwm(pwm_signal);
+        Set_pwm2(pwm_signal);
+        Set_pwm3(pwm_signal);
+        Set_pwm4(pwm_signal);
+
+        pwm_signal++;
+
         if (pwm_signal >= 100)
         {
             forward = 0;
@@ -259,7 +415,13 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     }
     else
     {
-        Set_pwm(pwm_signal--);
+        Set_pwm(pwm_signal);
+        Set_pwm2(pwm_signal);
+        Set_pwm3(pwm_signal);
+        Set_pwm4(pwm_signal);
+
+        pwm_signal--;
+
         if (pwm_signal <= 0)
         {
             forward = 1;
@@ -415,7 +577,7 @@ BOOL StartTransfer( BOOL restart )
 
         if(I2CStart(EEPROM_I2C_BUS) != I2C_SUCCESS)
         {
-            DBPRINTF("Error: Bus collision during transfer Start\n");
+            //DBPRINTF("Error: Bus collision during transfer Start\n");
             return FALSE;
         }
     }
@@ -469,7 +631,7 @@ BOOL TransmitOneByte( UINT8 data )
     // Transmit the byte
     if(I2CSendByte(EEPROM_I2C_BUS, data) == I2C_MASTER_BUS_COLLISION)
     {
-        DBPRINTF("Error: I2C Master Bus Collision\n");
+        //DBPRINTF("Error: I2C Master Bus Collision\n");
         return FALSE;
     }
 
@@ -523,6 +685,3 @@ void StopTransfer( void )
 
     } while ( !(status & I2C_STOP) );
 }
-
-
-

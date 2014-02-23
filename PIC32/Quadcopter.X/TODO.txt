@@ -21,8 +21,17 @@ Set up 4 PWM outputs and test them.
     Can all PWM outputs use the same timer? (Timer 2 or Timer 3)
 
 Set up I2C and test it.
+    Found problem with I2C Frequency.
+    See page 19 in I2C-doc.
+    See C:\Program Files (x86)\Microchip\xc32\v1.30\pic32-libs\peripheral\i2c\source\I2CSetFrequency.c
+    Maybe a good solution requires 50MHz clock?
+
 
 Test external 20 MHz crystal. Remember to change the configuration bits!
 
 Learn more about interrupts. For example, what is ip17??
+
+Buy UART/USB converter for debugging PIC32MX
+    http://www.electrokit.com/usbseriell-omvandlare-ft232rl.45997
+
 
