@@ -53,7 +53,6 @@
  * SYSCLK = 8 / FPLLIDIV * FPLLMULT / FPLLODIV = 8 / 2 * 24 / 2 = 48 MHz
  * 8 = 8 MHz = FRC (Internal Clock)
 
-
  * 48 Mhz -> 24 MHz Peripheral Clock
  * Timer 3 will count up to 60000
  * Timer 3 Prescaler is 8
@@ -68,6 +67,19 @@
  * Min PWM duty cycle: 2000 (maybe a little less )
  * Max PWM duty cycle: 7000 (maybe a little more )
 
+ 
+ 
+ // If 20 MHz oscillator should be used
+ * SYSCLK = 20 / FPLLIDIV * FPLLMULT / FPLLODIV = 20 / 4 * 20 / 2 = 50 MHz
+ * 20 = 20 MHz = Extern clock
+ 
+ * 50 Mhz -> 25 MHz Peripheral Clock
+ * Timer 3 will count up to 62500
+ * Timer 3 Prescaler is 8
+ * PWM frequency = Peripheral Clock / Nr of Counts / Prescaler = 25e6 / 62,5e3 / 8 = 50 Hz
+ 
+ 
+ 
  */
 
 #define PWM_PERIOD          (60000)
@@ -81,6 +93,22 @@
 //#define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 //#define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 //#define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+
+
+
+/*
+#define SYS_CLOCK (50000000L)
+
+#define GetSystemClock()            (SYS_CLOCK)
+#define GetPeripheralClock()        (SYS_CLOCK/2)
+#define GetInstructionClock()       (SYS_CLOCK)
+#define I2C_CLOCK_FREQ              5000
+
+// EEPROM Constants
+#define EEPROM_I2C_BUS              I2C1
+#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
+
+*/
 
 
 char forward = 1;
@@ -151,8 +179,7 @@ int main(int argc, char** argv)
     //RPB0Rbits.RPB0R=5;                      //Sets RPB0 as OC3. (pin 4)
     //RPB1Rbits.RPB1R=5;                      //Sets RPB1 as OC4. (pin 5)
 
-
-
+	
     //All Pin configuration should end here
 
     SYSKEY = 0;                                   // Locks the pin Configurations
@@ -240,3 +267,262 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     }
     IFS0CLR = 0x4000;                   // Clearing Timer3 interrupt flag
 }
+
+
+/*
+
+//
+    // Read the data back from the EEPROM.
+    //
+
+    // Initialize the data buffer
+    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_WRITE);
+    i2cData[0] = SlaveAddress.byte;
+    i2cData[1] = 0x05;              // EEPROM location to read (high address byte)
+    i2cData[2] = 0x40;              // EEPROM location to read (low address byte)
+    DataSz = 3;
+    
+    // Start the transfer to read the EEPROM.
+    if( !StartTransfer(FALSE) )
+    {
+        while(1);
+    }
+    
+    // Address the EEPROM.
+    Index = 0;
+    while( Success & (Index < DataSz) )
+    {
+        // Transmit a byte
+        if (TransmitOneByte(i2cData[Index]))
+        {
+            // Advance to the next byte
+            Index++;
+        }
+        else
+        {
+            Success = FALSE;
+        }
+
+        // Verify that the byte was acknowledged
+        if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
+        {
+            DBPRINTF("Error: Sent byte was not acknowledged\n");
+            Success = FALSE;
+        }
+    }
+
+    // Restart and send the EEPROM's internal address to switch to a read transfer
+    if(Success)
+    {
+        // Send a Repeated Started condition
+        if( !StartTransfer(TRUE) )
+        {
+            while(1);
+        }
+
+        // Transmit the address with the READ bit set
+        I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_READ);
+        if (TransmitOneByte(SlaveAddress.byte))
+        {
+            // Verify that the byte was acknowledged
+            if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
+            {
+                DBPRINTF("Error: Sent byte was not acknowledged\n");
+                Success = FALSE;
+            }
+        }
+        else
+        {
+            Success = FALSE;
+        }
+    }
+
+    // Read the data from the desired address
+    if(Success)
+    {
+        if(I2CReceiverEnable(EEPROM_I2C_BUS, TRUE) == I2C_RECEIVE_OVERFLOW)
+        {
+            DBPRINTF("Error: I2C Receive Overflow\n");
+            Success = FALSE;
+        }
+        else
+        {
+            while(!I2CReceivedDataIsAvailable(EEPROM_I2C_BUS));
+            i2cbyte = I2CGetByte(EEPROM_I2C_BUS);
+        }
+
+    }
+
+    // End the transfer (stop here if an error occured)
+    StopTransfer();
+    if(!Success)
+    {
+        while(1);
+    }
+
+
+
+*/
+
+
+
+
+/*******************************************************************************
+  Function:
+    BOOL StartTransfer( BOOL restart )
+
+  Summary:
+    Starts (or restarts) a transfer to/from the EEPROM.
+
+  Description:
+    This routine starts (or restarts) a transfer to/from the EEPROM, waiting (in
+    a blocking loop) until the start (or re-start) condition has completed.
+
+  Precondition:
+    The I2C module must have been initialized.
+
+  Parameters:
+    restart - If FALSE, send a "Start" condition
+            - If TRUE, send a "Restart" condition
+    
+  Returns:
+    TRUE    - If successful
+    FALSE   - If a collision occured during Start signaling
+    
+  Example:
+    <code>
+    StartTransfer(FALSE);
+    </code>
+
+  Remarks:
+    This is a blocking routine that waits for the bus to be idle and the Start
+    (or Restart) signal to complete.
+  *****************************************************************************/
+
+BOOL StartTransfer( BOOL restart )
+{
+    I2C_STATUS  status;
+
+    // Send the Start (or Restart) signal
+    if(restart)
+    {
+        I2CRepeatStart(EEPROM_I2C_BUS);
+    }
+    else
+    {
+        // Wait for the bus to be idle, then start the transfer
+        while( !I2CBusIsIdle(EEPROM_I2C_BUS) );
+
+        if(I2CStart(EEPROM_I2C_BUS) != I2C_SUCCESS)
+        {
+            DBPRINTF("Error: Bus collision during transfer Start\n");
+            return FALSE;
+        }
+    }
+
+    // Wait for the signal to complete
+    do
+    {
+        status = I2CGetStatus(EEPROM_I2C_BUS);
+
+    } while ( !(status & I2C_START) );
+
+    return TRUE;
+}
+
+
+/*******************************************************************************
+  Function:
+    BOOL TransmitOneByte( UINT8 data )
+
+  Summary:
+    This transmits one byte to the EEPROM.
+
+  Description:
+    This transmits one byte to the EEPROM, and reports errors for any bus
+    collisions.
+
+  Precondition:
+    The transfer must have been previously started.
+
+  Parameters:
+    data    - Data byte to transmit
+
+  Returns:
+    TRUE    - Data was sent successfully
+    FALSE   - A bus collision occured
+
+  Example:
+    <code>
+    TransmitOneByte(0xAA);
+    </code>
+
+  Remarks:
+    This is a blocking routine that waits for the transmission to complete.
+  *****************************************************************************/
+
+BOOL TransmitOneByte( UINT8 data )
+{
+    // Wait for the transmitter to be ready
+    while(!I2CTransmitterIsReady(EEPROM_I2C_BUS));
+
+    // Transmit the byte
+    if(I2CSendByte(EEPROM_I2C_BUS, data) == I2C_MASTER_BUS_COLLISION)
+    {
+        DBPRINTF("Error: I2C Master Bus Collision\n");
+        return FALSE;
+    }
+
+    // Wait for the transmission to finish
+    while(!I2CTransmissionHasCompleted(EEPROM_I2C_BUS));
+
+    return TRUE;
+}
+
+
+/*******************************************************************************
+  Function:
+    void StopTransfer( void )
+
+  Summary:
+    Stops a transfer to/from the EEPROM.
+
+  Description:
+    This routine Stops a transfer to/from the EEPROM, waiting (in a 
+    blocking loop) until the Stop condition has completed.
+
+  Precondition:
+    The I2C module must have been initialized & a transfer started.
+
+  Parameters:
+    None.
+    
+  Returns:
+    None.
+    
+  Example:
+    <code>
+    StopTransfer();
+    </code>
+
+  Remarks:
+    This is a blocking routine that waits for the Stop signal to complete.
+  *****************************************************************************/
+
+void StopTransfer( void )
+{
+    I2C_STATUS  status;
+
+    // Send the Stop signal
+    I2CStop(EEPROM_I2C_BUS);
+
+    // Wait for the signal to complete
+    do
+    {
+        status = I2CGetStatus(EEPROM_I2C_BUS);
+
+    } while ( !(status & I2C_STOP) );
+}
+
+
+
