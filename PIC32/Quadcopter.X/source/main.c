@@ -67,8 +67,7 @@
  * Min PWM duty cycle: 2000 (maybe a little less )
  * Max PWM duty cycle: 7000 (maybe a little more )
 
- 
- 
+ *
  // If 20 MHz oscillator should be used
  * SYSCLK = 20 / FPLLIDIV * FPLLMULT / FPLLODIV = 20 / 4 * 20 / 2 = 50 MHz
  * 20 = 20 MHz = Extern clock
@@ -77,9 +76,7 @@
  * Timer 3 will count up to 62500
  * Timer 3 Prescaler is 8
  * PWM frequency = Peripheral Clock / Nr of Counts / Prescaler = 25e6 / 62,5e3 / 8 = 50 Hz
- 
- 
- 
+  
  */
 
 #define PWM_PERIOD          (60000)
@@ -95,10 +92,7 @@
 #define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 
 
-
-
 #define SYS_CLOCK (48000000L)
-
 #define GetSystemClock()            (SYS_CLOCK)
 #define GetPeripheralClock()        (SYS_CLOCK/2)
 #define GetInstructionClock()       (SYS_CLOCK)
@@ -108,7 +102,6 @@
 #define EEPROM_I2C_BUS              I2C1
 #define EEPROM_ADDRESS              0x68        // 0b1101000 MPU6050 address (gyro)
 //#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
-
 
 
 
@@ -200,7 +193,9 @@ int main(int argc, char** argv)
     BOOL                Acknowledged;
     BOOL                Success = TRUE;
     UINT8               i2cbyte;
-    
+
+    unsigned int        count = 0;          // loop variable
+
     // End of Variable declarations
 
 
@@ -248,8 +243,14 @@ int main(int argc, char** argv)
     mPORTBSetPinsDigitalOut(BIT_3);
 
 
-
-    //mPORTBSetBits(BIT_2);
+    // i2c communication is not working if this delay is removed. 
+    // The loop time may very well be shortened (not tested).
+    // The MPU6050 probably need some time to initialized after power on.
+    count = 0;
+    while( count < 4000000 )
+    {
+        count++;
+    }    
 
     // Initialize debug messages (when supported)
     //DBINIT();
@@ -259,8 +260,7 @@ int main(int argc, char** argv)
     actualClock = I2CSetFrequency(EEPROM_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
     {
-        //DBPRINTF("Error: I2C1 clock frequency (%u) error exceeds 10%%.\n", (unsigned)actualClock);
-        //mPORTBSetBits(BIT_2);
+        //DBPRINTF("Error: I2C1 clock frequency (%u) error exceeds 10%%.\n", (unsigned)actualClock);       
     }
 
     // Enable the I2C bus
@@ -278,7 +278,6 @@ int main(int argc, char** argv)
     // Start the transfer to read the EEPROM.
     if( !StartTransfer(FALSE) )
     {
-        //mPORTBSetBits(BIT_3);
         while(1);
     }
 
@@ -286,12 +285,6 @@ int main(int argc, char** argv)
     Index = 0;
     while( Success & (Index < DataSz) )
     {
-        if(Index == 0)
-            mPORTBSetBits(BIT_2);
-        else if(Index == 1)
-            mPORTBSetBits(BIT_3);
-
-
         // Transmit a byte
         if (TransmitOneByte(i2cData[Index]))
         {
@@ -299,15 +292,13 @@ int main(int argc, char** argv)
             Index++;
         }
         else
-        {
-            //mPORTBSetBits(BIT_2);
+        {          
             Success = FALSE;
         }
 
         // Verify that the byte was acknowledged
         if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
-        {
-            //mPORTBSetBits(BIT_3);
+        {            
             //DBPRINTF("Error: Sent byte was not acknowledged\n");
             Success = FALSE;
         }
@@ -338,6 +329,8 @@ int main(int argc, char** argv)
             Success = FALSE;
         }
     }
+    
+    i2cbyte = 9;
 
     // Read the data from the desired address
     if(Success)
@@ -365,20 +358,16 @@ int main(int argc, char** argv)
     // If the correct data has been recieved then flash the LED connected to RB2
     if( i2cbyte == 0x68 )
     {
-        //mPORTBSetBits(BIT_2);
-
-        mPORTBClearBits(BIT_2);
+        mPORTBSetBits(BIT_2);
+        mPORTBSetBits(BIT_3);
     }
+    if( i2cbyte == 9 )
+    {
+        mPORTBSetBits(BIT_2);
+        mPORTBClearBits(BIT_3);
+    } 
 
-
-
-
-    //Set_pwm(50);
-    
-    //mPORTAClearBits(BIT_1);
-    //mPORTASetPinsDigitalOut(BIT_1);
-
-    unsigned int count = 0;
+    count = 0;
     while(1)
     {  
         // Doing nothing...
@@ -429,105 +418,6 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     }
     IFS0CLR = 0x4000;                   // Clearing Timer3 interrupt flag
 }
-
-
-/*
-
-//
-    // Read the data back from the EEPROM.
-    //
-
-    // Initialize the data buffer
-    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_WRITE);
-    i2cData[0] = SlaveAddress.byte;
-    i2cData[1] = 0x05;              // EEPROM location to read (high address byte)
-    i2cData[2] = 0x40;              // EEPROM location to read (low address byte)
-    DataSz = 3;
-    
-    // Start the transfer to read the EEPROM.
-    if( !StartTransfer(FALSE) )
-    {
-        while(1);
-    }
-    
-    // Address the EEPROM.
-    Index = 0;
-    while( Success & (Index < DataSz) )
-    {
-        // Transmit a byte
-        if (TransmitOneByte(i2cData[Index]))
-        {
-            // Advance to the next byte
-            Index++;
-        }
-        else
-        {
-            Success = FALSE;
-        }
-
-        // Verify that the byte was acknowledged
-        if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
-        {
-            DBPRINTF("Error: Sent byte was not acknowledged\n");
-            Success = FALSE;
-        }
-    }
-
-    // Restart and send the EEPROM's internal address to switch to a read transfer
-    if(Success)
-    {
-        // Send a Repeated Started condition
-        if( !StartTransfer(TRUE) )
-        {
-            while(1);
-        }
-
-        // Transmit the address with the READ bit set
-        I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_READ);
-        if (TransmitOneByte(SlaveAddress.byte))
-        {
-            // Verify that the byte was acknowledged
-            if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
-            {
-                DBPRINTF("Error: Sent byte was not acknowledged\n");
-                Success = FALSE;
-            }
-        }
-        else
-        {
-            Success = FALSE;
-        }
-    }
-
-    // Read the data from the desired address
-    if(Success)
-    {
-        if(I2CReceiverEnable(EEPROM_I2C_BUS, TRUE) == I2C_RECEIVE_OVERFLOW)
-        {
-            DBPRINTF("Error: I2C Receive Overflow\n");
-            Success = FALSE;
-        }
-        else
-        {
-            while(!I2CReceivedDataIsAvailable(EEPROM_I2C_BUS));
-            i2cbyte = I2CGetByte(EEPROM_I2C_BUS);
-        }
-
-    }
-
-    // End the transfer (stop here if an error occured)
-    StopTransfer();
-    if(!Success)
-    {
-        while(1);
-    }
-
-
-
-*/
-
-
-
 
 /*******************************************************************************
   Function:
