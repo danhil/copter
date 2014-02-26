@@ -29,9 +29,10 @@ Set up I2C and test it.
 
 Test external 20 MHz crystal. Remember to change the configuration bits!
 
-Learn more about interrupts. For example, what is ip17??
+Learn more about interrupts. For example, what is ipl7??
 
 Buy UART/USB converter for debugging PIC32MX
     http://www.electrokit.com/usbseriell-omvandlare-ft232rl.45997
 
 
+Write i2c_init()

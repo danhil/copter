@@ -95,12 +95,12 @@
 #define SYS_CLOCK (48000000L)
 #define GetSystemClock()            (SYS_CLOCK)
 #define GetPeripheralClock()        (SYS_CLOCK/2)
-#define GetInstructionClock()       (SYS_CLOCK)
+//#define GetInstructionClock()       (SYS_CLOCK)
 #define I2C_CLOCK_FREQ              400000
 
 // EEPROM Constants
-#define EEPROM_I2C_BUS              I2C1
-#define EEPROM_ADDRESS              0x68        // 0b1101000 MPU6050 address (gyro)
+#define MPU6050_I2C_BUS              I2C1
+#define MPU6050_ADDRESS              0x68        // 0b1101000 MPU6050 address
 //#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
 
 
@@ -108,6 +108,10 @@
 BOOL StartTransfer( BOOL restart );
 BOOL TransmitOneByte( UINT8 data );
 void StopTransfer( void );
+
+UINT8 i2c_read( UINT8 regAddress );
+BOOL i2c_write(UINT8 regAddress, UINT8 data);
+
 
 char forward = 1;
 char pwm_signal = 0;
@@ -257,115 +261,17 @@ int main(int argc, char** argv)
 
 
     // Set the I2C baudrate
-    actualClock = I2CSetFrequency(EEPROM_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
+    actualClock = I2CSetFrequency(MPU6050_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
     {
         //DBPRINTF("Error: I2C1 clock frequency (%u) error exceeds 10%%.\n", (unsigned)actualClock);       
     }
 
     // Enable the I2C bus
-    I2CEnable(EEPROM_I2C_BUS, TRUE);
+    I2CEnable(MPU6050_I2C_BUS, TRUE);
 
-
-    // Read the data
-
-    // Initialize the data buffer
-    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_WRITE);
-    i2cData[0] = SlaveAddress.byte;
-    i2cData[1] = 0x75;                 // MPU6050 data address to read (0x75 = WHO_AM_I which contains 0x68)
-    DataSz = 2;
-
-    // Start the transfer to read the EEPROM.
-    if( !StartTransfer(FALSE) )
-    {
-        while(1);
-    }
-
-    // Address the EEPROM.
-    Index = 0;
-    while( Success & (Index < DataSz) )
-    {
-        // Transmit a byte
-        if (TransmitOneByte(i2cData[Index]))
-        {
-            // Advance to the next byte
-            Index++;
-        }
-        else
-        {          
-            Success = FALSE;
-        }
-
-        // Verify that the byte was acknowledged
-        if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
-        {            
-            //DBPRINTF("Error: Sent byte was not acknowledged\n");
-            Success = FALSE;
-        }
-    }
-
-    // Restart and send the EEPROM's internal address to switch to a read transfer
-    if(Success)
-    {
-        // Send a Repeated Started condition
-        if( !StartTransfer(TRUE) )
-        {
-            while(1);
-        }
-
-        // Transmit the address with the READ bit set
-        I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, EEPROM_ADDRESS, I2C_READ);
-        if (TransmitOneByte(SlaveAddress.byte))
-        {
-            // Verify that the byte was acknowledged
-            if(!I2CByteWasAcknowledged(EEPROM_I2C_BUS))
-            {
-                //DBPRINTF("Error: Sent byte was not acknowledged\n");
-                Success = FALSE;
-            }
-        }
-        else
-        {
-            Success = FALSE;
-        }
-    }
-    
-    i2cbyte = 9;
-
-    // Read the data from the desired address
-    if(Success)
-    {
-        if(I2CReceiverEnable(EEPROM_I2C_BUS, TRUE) == I2C_RECEIVE_OVERFLOW)
-        {
-            //DBPRINTF("Error: I2C Receive Overflow\n");
-            Success = FALSE;
-        }
-        else
-        {
-            while(!I2CReceivedDataIsAvailable(EEPROM_I2C_BUS));
-            i2cbyte = I2CGetByte(EEPROM_I2C_BUS);
-        }
-
-    }
-
-    // End the transfer (stop here if an error occured)
-    StopTransfer();
-    if(!Success)
-    {
-        while(1);
-    }
-
-    // If the correct data has been recieved then flash the LED connected to RB2
-    if( i2cbyte == 0x68 )
-    {
-        mPORTBSetBits(BIT_2);
-        mPORTBSetBits(BIT_3);
-    }
-    if( i2cbyte == 9 )
-    {
-        mPORTBSetBits(BIT_2);
-        mPORTBClearBits(BIT_3);
-    } 
+    // reads the register address 0x75 from the MPU6050
+    i2c_read(0x75);
 
     count = 0;
     while(1)
@@ -445,39 +351,47 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     <code>
     StartTransfer(FALSE);
     </code>
-
-  Remarks:
-    This is a blocking routine that waits for the bus to be idle and the Start
-    (or Restart) signal to complete.
+ 
   *****************************************************************************/
 
 BOOL StartTransfer( BOOL restart )
 {
     I2C_STATUS  status;
+    UINT8 count = 0;
 
     // Send the Start (or Restart) signal
     if(restart)
     {
-        I2CRepeatStart(EEPROM_I2C_BUS);
+        I2CRepeatStart(MPU6050_I2C_BUS);
     }
     else
     {
         // Wait for the bus to be idle, then start the transfer
-        while( !I2CBusIsIdle(EEPROM_I2C_BUS) );
+        //while( !I2CBusIsIdle(MPU6050_I2C_BUS) );
 
-        if(I2CStart(EEPROM_I2C_BUS) != I2C_SUCCESS)
+        // Checks if the bus is idle, and starts the transfer if so
+        if( I2CBusIsIdle(MPU6050_I2C_BUS) )
         {
-            //DBPRINTF("Error: Bus collision during transfer Start\n");
-            return FALSE;
+            if(I2CStart(MPU6050_I2C_BUS) != I2C_SUCCESS)
+            {
+                //DBPRINTF("Error: Bus collision during transfer Start\n");
+                return FALSE;
+            }
         }
+        else
+            return FALSE;
     }
 
-    // Wait for the signal to complete
+    // Wait for the signal to complete or until time out
     do
     {
-        status = I2CGetStatus(EEPROM_I2C_BUS);
+        status = I2CGetStatus(MPU6050_I2C_BUS);
+        count++;
 
-    } while ( !(status & I2C_START) );
+    } while ( !(status & I2C_START) && count < 200);
+
+    if( count >= 200 )
+        return FALSE;
 
     return TRUE;
 }
@@ -508,25 +422,36 @@ BOOL StartTransfer( BOOL restart )
     <code>
     TransmitOneByte(0xAA);
     </code>
-
-  Remarks:
-    This is a blocking routine that waits for the transmission to complete.
+  
   *****************************************************************************/
 
 BOOL TransmitOneByte( UINT8 data )
 {
+    UINT16 count = 0;
+
     // Wait for the transmitter to be ready
-    while(!I2CTransmitterIsReady(EEPROM_I2C_BUS));
+    //while(!I2CTransmitterIsReady(MPU6050_I2C_BUS));
 
-    // Transmit the byte
-    if(I2CSendByte(EEPROM_I2C_BUS, data) == I2C_MASTER_BUS_COLLISION)
+    if( I2CTransmitterIsReady(MPU6050_I2C_BUS) )
     {
-        //DBPRINTF("Error: I2C Master Bus Collision\n");
-        return FALSE;
-    }
+        // Transmit the byte
+        if(I2CSendByte(MPU6050_I2C_BUS, data) == I2C_MASTER_BUS_COLLISION)
+        {
+            //DBPRINTF("Error: I2C Master Bus Collision\n");
+            return FALSE;
+        }
 
-    // Wait for the transmission to finish
-    while(!I2CTransmissionHasCompleted(EEPROM_I2C_BUS));
+        // Wait for the transmission to finish
+        while( !I2CTransmissionHasCompleted(MPU6050_I2C_BUS) && count < 5000 )
+        {
+            count++;
+        }
+
+        if( count >= 5000 )
+            return FALSE;
+    }
+    else
+        return FALSE;
 
     return TRUE;
 }
@@ -556,22 +481,225 @@ BOOL TransmitOneByte( UINT8 data )
     <code>
     StopTransfer();
     </code>
-
-  Remarks:
-    This is a blocking routine that waits for the Stop signal to complete.
+ 
   *****************************************************************************/
 
 void StopTransfer( void )
 {
     I2C_STATUS  status;
+    UINT8 count = 0;
 
     // Send the Stop signal
-    I2CStop(EEPROM_I2C_BUS);
+    I2CStop(MPU6050_I2C_BUS);
 
     // Wait for the signal to complete
     do
     {
-        status = I2CGetStatus(EEPROM_I2C_BUS);
+        status = I2CGetStatus(MPU6050_I2C_BUS);
+        count++;
 
-    } while ( !(status & I2C_STOP) );
+    } while ( !(status & I2C_STOP) && count < 200);
+}
+
+/*******************************************************************************
+  Function:
+    UINT8 i2c_read( UINT8 regAddress )
+
+  Description:
+    Reads a register in the i2c device.
+
+  Precondition:
+    The I2C module must have been initialized.
+
+  Parameters:
+    8-bit address for the register to read.
+
+  Returns:
+    Content of the register that was read.
+
+  *****************************************************************************/
+
+UINT8 i2c_read( UINT8 regAddress )
+{
+    // Variable declarations
+    UINT8               i2cData[10];
+    I2C_7_BIT_ADDRESS   SlaveAddress;
+    int                 Index;
+    int                 DataSz;    
+    BOOL                Acknowledged;
+    BOOL                Success = TRUE;
+    UINT8               i2cbyte;
+
+
+    // Initialize the data buffer
+    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, MPU6050_ADDRESS, I2C_WRITE);
+    i2cData[0] = SlaveAddress.byte;
+    i2cData[1] = regAddress;                 // MPU6050 data address to read (0x75 = WHO_AM_I which contains 0x68)
+    DataSz = 2;
+
+
+    // Start the transfer
+    if( !StartTransfer(FALSE) )
+    {
+        //while(1);
+        Success = FALSE;
+    }
+
+    // Address the device.
+    Index = 0;
+    while( Success & (Index < DataSz) )
+    {
+        // Transmit a byte
+        if (TransmitOneByte(i2cData[Index]))
+            Index++;
+        else
+            Success = FALSE;
+
+        // Verify that the byte was acknowledged
+        if(!I2CByteWasAcknowledged(MPU6050_I2C_BUS))
+        {
+            //DBPRINTF("Error: Sent byte was not acknowledged\n");
+            Success = FALSE;
+        }
+    }
+
+    // Restart and send the device's internal address to switch to a read transfer
+    if(Success)
+    {
+        // Send a Repeated Started condition
+        if( !StartTransfer(TRUE) )
+        {
+            //while(1);
+            Success = FALSE;
+        }
+
+        // Transmit the address with the READ bit set
+        I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, MPU6050_ADDRESS, I2C_READ);
+        if (TransmitOneByte(SlaveAddress.byte))
+        {
+            // Verify that the byte was acknowledged
+            if(!I2CByteWasAcknowledged(MPU6050_I2C_BUS))
+            {
+                //DBPRINTF("Error: Sent byte was not acknowledged\n");
+                Success = FALSE;
+            }
+        }
+        else
+        {
+            Success = FALSE;
+        }
+    }
+
+    i2cbyte = 9;
+
+    // Read the data from the desired address
+    if(Success)
+    {
+        if(I2CReceiverEnable(MPU6050_I2C_BUS, TRUE) == I2C_RECEIVE_OVERFLOW)
+        {
+            //DBPRINTF("Error: I2C Receive Overflow\n");
+            Success = FALSE;
+        }
+        else
+        {
+            while(!I2CReceivedDataIsAvailable(MPU6050_I2C_BUS));
+            i2cbyte = I2CGetByte(MPU6050_I2C_BUS);
+        }
+    }
+
+    // End the transfer
+    StopTransfer();
+    if(!Success)
+    {
+        //while(1);
+
+        mPORTBSetBits(BIT_2);
+        mPORTBClearBits(BIT_3);
+    }
+
+    if( i2cbyte == 0x68 )
+    {
+        mPORTBSetBits(BIT_2);
+        mPORTBSetBits(BIT_3);
+    }
+    if( i2cbyte == 9 )
+    {
+        //mPORTBSetBits(BIT_2);
+        //mPORTBClearBits(BIT_3);
+    }
+
+    return i2cbyte;
+}
+
+BOOL i2c_write(UINT8 regAddress, UINT8 data)
+{
+    UINT8               i2cData[10];
+    I2C_7_BIT_ADDRESS   SlaveAddress;
+    int                 Index;
+    int                 DataSz;
+    BOOL                Acknowledged = FALSE;
+    BOOL                Success = TRUE;
+    
+    // Initialize the data buffer
+    I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, MPU6050_ADDRESS, I2C_WRITE);
+    i2cData[0] = SlaveAddress.byte;
+    i2cData[1] = regAddress;        // Register Address to write
+    i2cData[3] = data;              // Data to write
+    DataSz = 3;
+
+    // Start the transfer
+    if( !StartTransfer(FALSE) )
+    {
+        //while(1);
+        Success = FALSE;
+    }
+
+    // Transmit all data
+    Index = 0;
+    while( Success && (Index < DataSz) )
+    {
+        // Transmit a byte
+        if (TransmitOneByte(i2cData[Index]))
+        {
+            // Advance to the next byte
+            Index++;
+
+            // Verify that the byte was acknowledged
+            if(!I2CByteWasAcknowledged(MPU6050_I2C_BUS))
+            {
+                //DBPRINTF("Error: Sent byte was not acknowledged\n");
+                Success = FALSE;
+            }
+        }
+        else
+        {
+            Success = FALSE;
+        }
+    }
+
+    // End the transfer
+    StopTransfer();
+    
+    // Wait for device to complete write process, by polling the ack status.    
+    while (Acknowledged != TRUE && Success != FALSE);
+    {
+        // Start the transfer
+        if( StartTransfer(FALSE) )
+        {  
+            // Transmit just the device's address
+            if (TransmitOneByte(SlaveAddress.byte))
+            {
+                // Check to see if the byte was acknowledged
+                Acknowledged = I2CByteWasAcknowledged(MPU6050_I2C_BUS);
+            }
+            else           
+                Success = FALSE;            
+
+            // End the transfer
+            StopTransfer();
+        }
+        else
+          Success = FALSE;
+    }
+    return Success;
 }
