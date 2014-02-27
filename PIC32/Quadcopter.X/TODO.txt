@@ -26,7 +26,6 @@ Set up I2C and test it.
     See C:\Program Files (x86)\Microchip\xc32\v1.30\pic32-libs\peripheral\i2c\source\I2CSetFrequency.c
     Maybe a good solution requires 50MHz clock?
 
-
 Test external 20 MHz crystal. Remember to change the configuration bits!
 
 Learn more about interrupts. For example, what is ipl7??
@@ -34,5 +33,15 @@ Learn more about interrupts. For example, what is ipl7??
 Buy UART/USB converter for debugging PIC32MX
     http://www.electrokit.com/usbseriell-omvandlare-ft232rl.45997
 
+Test i2c write function! Do this before testing the new class!
 
-Write i2c_init()
+Test the new class for i2c communication
+
+Test the gyro filter function using PIC32
+
+Test UART/USB converter
+
+Output result from gyro to the terminal window in PC (using UART/USB converter)
+
+Get a 1ms interrupt running and trigger the gyro filter function with this
+    Is it enought time to make all the readings and calculations?
