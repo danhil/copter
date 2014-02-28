@@ -8,7 +8,7 @@
 
 #include <string.h>
 
-#include <math.h>
+
 #include <time.h>
 
 
@@ -18,6 +18,8 @@
 #include <iostream>
 using namespace std;
 */
+
+#include <math.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,7 +147,7 @@ class MPU6050
 {
     public:
         MPU6050(void); 													// default constructor
-        MPU6050( UINT8 dev_addr, UINT8 busNumber );     //over loaded constructor
+        MPU6050( I2C_MODULE busNumber , UINT8 dev_addr );     //over loaded constructor
         ~MPU6050(void);
 
         void MPU6050_Test_I2C();
@@ -167,11 +169,16 @@ class MPU6050
     private:        
 
         // Initiate the i2c bus. Called only in constructors.
-        BOOL MPU6050::I2CInit();
+        BOOL I2CInit();
         // function to write byte data into a register of an I2C device
         BOOL writeReg( UINT8 reg_addr, UINT8 data);
         // function to read byte data from a register of an I2C device
         BOOL readReg( UINT8 reg_addr, UINT8 &data);
+
+        BOOL StartTransfer( BOOL restart );
+        BOOL TransmitOneByte( UINT8 data );
+        void StopTransfer( void );
+
 
         // private member variables        
 

@@ -103,6 +103,7 @@
 #define MPU6050_ADDRESS              0x68        // 0b1101000 MPU6050 address
 //#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
 
+#define UARTBaudRate                    9600
 
 
 BOOL StartTransfer( BOOL restart );
@@ -112,6 +113,7 @@ void StopTransfer( void );
 UINT8 i2c_read( UINT8 regAddress );
 BOOL i2c_write(UINT8 regAddress, UINT8 data);
 
+void Serial_print(char *buffer);
 
 char forward = 1;
 char pwm_signal = 0;
@@ -169,19 +171,20 @@ int main(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
+    //mPORTBSetPinsDigitalOut(BIT_11);      // Set PB10(Tx) as output
+    //mPORTBSetPinsDigitalIn (BIT_12);      // Set PB11(Rx) as input
+
     // Peripheral Pin Select
     SYSKEY = 0xAA996655;            // Write Key1 to SYSKEY
     SYSKEY = 0x556699AA;            // Write Key2 to SYSKEY
 
-    //All Pin configurations should start here
-
-    //RPB4Rbits.RPB4R=5;                    //Sets RPB4 as OC1. (pin 11)
-    RPA0Rbits.RPA0R=5;                      //Sets RPA0 as OC1. (pin 2)
-    RPA1Rbits.RPA1R=5;                      //Sets RPA1 as OC2. (pin 3)
-    RPB0Rbits.RPB0R=5;                      //Sets RPB0 as OC3. (pin 4)
-    RPB1Rbits.RPB1R=5;                      //Sets RPB1 as OC4. (pin 5)
-
-	
+    //All Pin configurations should start here 
+    RPA0Rbits.RPA0R=5;                      //Sets RPA0 (pin 2) as OC1 (PWM1)
+    RPA1Rbits.RPA1R=5;                      //Sets RPA1 (pin 3) as OC2 (PWM2)
+    RPB0Rbits.RPB0R=5;                      //Sets RPB0 (pin 4) as OC3 (PWM3)
+    RPB1Rbits.RPB1R=5;                      //Sets RPB1 (pin 5) as OC4 (PWM4)    
+    RPB4Rbits.RPB4R=1;                      //Sets RPB4 (pin 11) as U1TX (UART TX)
+    U1RXRbits.U1RXR=2;                      //Sets RPA4 (pin 12) as U1RX (UART RX)
     //All Pin configuration should end here
 
     SYSKEY = 0;                                   // Locks the pin Configurations
@@ -239,6 +242,12 @@ int main(int argc, char** argv)
     OC4CONSET = 0x8000;             // Enable OC4
 
 
+    UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
+    UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
+    UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
+    UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
+
+
     // For debugging
     mPORTBClearBits(BIT_2);
     mPORTBSetPinsDigitalOut(BIT_2);
@@ -260,6 +269,8 @@ int main(int argc, char** argv)
     //DBINIT();
 
 
+
+/*
     // Set the I2C baudrate
     actualClock = I2CSetFrequency(MPU6050_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
@@ -272,7 +283,7 @@ int main(int argc, char** argv)
 
     // reads the register address 0x75 from the MPU6050
     i2c_read(0x75);
-
+*/
     count = 0;
     while(1)
     {  
@@ -283,6 +294,7 @@ int main(int argc, char** argv)
             count--;
         }
         
+        Serial_print("Hej");
 
         count = 4000000;
     }
@@ -702,4 +714,17 @@ BOOL i2c_write(UINT8 regAddress, UINT8 data)
           Success = FALSE;
     }
     return Success;
+}
+
+
+void Serial_print(char *buffer)
+{
+   while(*buffer != (char)0)
+   {
+      while(!UARTTransmitterIsReady(UART1));
+      UARTSendDataByte(UART1, *buffer++);
+   }
+    while(!UARTTransmissionHasCompleted(UART1));
+   UARTSendDataByte(UART1, '\r');
+   UARTSendDataByte(UART1, '\n');
 }

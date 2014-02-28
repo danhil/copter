@@ -1,5 +1,6 @@
 USEFUL SITES
 
+-- type pic32 in the search window and all the reference manuals will appear
 http://www.microchip.com/TechDoc.aspx?type=ReferenceManuals
 
 http://www.microchip.com/wwwcategory/TaxonomySearch.aspx?show=Application%20Notes&ShowField=no
@@ -11,6 +12,8 @@ http://caroper.blogspot.se/2013/06/peripheral-pin-select-pps.html
 http://www.eedesignlabs.com/pic32-tutorial-1-blinking-led/
 
 http://www.eedesignlabs.com/pic32-tutorial-0-setting-up/
+
+http://www.eedesignlabs.com/pic32-tutorial-4-uart-communication/
 
 
 TODO
@@ -27,8 +30,6 @@ Set up I2C and test it.
     Maybe a good solution requires 50MHz clock?
 
 Test external 20 MHz crystal. Remember to change the configuration bits!
-
-Learn more about interrupts. For example, what is ipl7??
 
 Buy UART/USB converter for debugging PIC32MX
     http://www.electrokit.com/usbseriell-omvandlare-ft232rl.45997

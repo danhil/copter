@@ -392,7 +392,7 @@ void MPU6050::Get_Gyro_Rates()
 
 BOOL MPU6050::I2CInit()
 {
-    UINT32 actualClock;
+    INT32 actualClock;
     BOOL Success = TRUE;    
 
     // Set the I2C baudrate
@@ -696,3 +696,178 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
 }
 
 
+/*******************************************************************************
+  Function:
+    BOOL StartTransfer( BOOL restart )
+
+  Summary:
+    Starts (or restarts) a transfer to/from the EEPROM.
+
+  Description:
+    This routine starts (or restarts) a transfer to/from the EEPROM, waiting (in
+    a blocking loop) until the start (or re-start) condition has completed.
+
+  Precondition:
+    The I2C module must have been initialized.
+
+  Parameters:
+    restart - If FALSE, send a "Start" condition
+            - If TRUE, send a "Restart" condition
+
+  Returns:
+    TRUE    - If successful
+    FALSE   - If a collision occured during Start signaling
+
+  Example:
+    <code>
+    StartTransfer(FALSE);
+    </code>
+
+  *****************************************************************************/
+
+BOOL MPU6050::StartTransfer( BOOL restart )
+{
+    I2C_STATUS  status;
+    UINT8 count = 0;
+
+    // Send the Start (or Restart) signal
+    if(restart)
+    {
+        I2CRepeatStart( i2cBusId );
+    }
+    else
+    {
+        // Wait for the bus to be idle, then start the transfer
+        //while( !I2CBusIsIdle(MPU6050_I2C_BUS) );
+
+        // Checks if the bus is idle, and starts the transfer if so
+        if( I2CBusIsIdle( i2cBusId ) )
+        {
+            if(I2CStart( i2cBusId ) != I2C_SUCCESS)
+            {
+                //DBPRINTF("Error: Bus collision during transfer Start\n");
+                return FALSE;
+            }
+        }
+        else
+            return FALSE;
+    }
+
+    // Wait for the signal to complete or until time out
+    do
+    {
+        status = I2CGetStatus( i2cBusId );
+        count++;
+
+    } while ( !(status & I2C_START) && count < 200);
+
+    if( count >= 200 )
+        return FALSE;
+
+    return TRUE;
+}
+
+
+/*******************************************************************************
+  Function:
+    BOOL TransmitOneByte( UINT8 data )
+
+  Summary:
+    This transmits one byte to the EEPROM.
+
+  Description:
+    This transmits one byte to the EEPROM, and reports errors for any bus
+    collisions.
+
+  Precondition:
+    The transfer must have been previously started.
+
+  Parameters:
+    data    - Data byte to transmit
+
+  Returns:
+    TRUE    - Data was sent successfully
+    FALSE   - A bus collision occured
+
+  Example:
+    <code>
+    TransmitOneByte(0xAA);
+    </code>
+
+  *****************************************************************************/
+
+BOOL MPU6050::TransmitOneByte( UINT8 data )
+{
+    UINT16 count = 0;
+
+    // Wait for the transmitter to be ready
+    //while(!I2CTransmitterIsReady(MPU6050_I2C_BUS));
+
+    if( I2CTransmitterIsReady( i2cBusId ) )
+    {
+        // Transmit the byte
+        if(I2CSendByte( i2cBusId, data) == I2C_MASTER_BUS_COLLISION)
+        {
+            //DBPRINTF("Error: I2C Master Bus Collision\n");
+            return FALSE;
+        }
+
+        // Wait for the transmission to finish
+        while( !I2CTransmissionHasCompleted( i2cBusId ) && count < 5000 )
+        {
+            count++;
+        }
+
+        if( count >= 5000 )
+            return FALSE;
+    }
+    else
+        return FALSE;
+
+    return TRUE;
+}
+
+
+/*******************************************************************************
+  Function:
+    void StopTransfer( void )
+
+  Summary:
+    Stops a transfer to/from the EEPROM.
+
+  Description:
+    This routine Stops a transfer to/from the EEPROM, waiting (in a
+    blocking loop) until the Stop condition has completed.
+
+  Precondition:
+    The I2C module must have been initialized & a transfer started.
+
+  Parameters:
+    None.
+
+  Returns:
+    None.
+
+  Example:
+    <code>
+    StopTransfer();
+    </code>
+
+  *****************************************************************************/
+
+void MPU6050::StopTransfer( void )
+{
+    I2C_STATUS  status;
+    UINT8 count = 0;
+
+    // Send the Stop signal
+    I2CStop( i2cBusId );
+
+    // Wait for the signal to complete
+    do
+    {
+        status = I2CGetStatus( i2cBusId );
+        count++;
+
+    } while ( !(status & I2C_STOP) && count < 200);
+}
