@@ -15,6 +15,10 @@ http://www.eedesignlabs.com/pic32-tutorial-0-setting-up/
 
 http://www.eedesignlabs.com/pic32-tutorial-4-uart-communication/
 
+http://www.eevblog.com/forum/microcontrollers/pic32mx-quickstart/15/
+
+http://www.johnloomis.org/microchip/pic32/timer/timer.html
+
 
 TODO
 
