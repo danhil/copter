@@ -241,19 +241,38 @@ int main(int argc, char** argv)
     OC3CONSET = 0x8000;             // Enable OC3
     OC4CONSET = 0x8000;             // Enable OC4
 
+	
+	// Configure RB4 to be digital out (TX for UART)
+    mPORTBClearBits(BIT_4);
+    mPORTBSetPinsDigitalOut(BIT_4);
+
+	// Configure RA4 to be digital in (RX for UART)
+    mPORTASetPinsDigitalIn(BIT_4);
+	
 
     UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
     UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
     UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
     UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
 
+	
+	// Alternative config of UART
+	//Initilize UART1
+	//int PB_CLOCK=20000000;
+	//int BAUD=9600;
+	//OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, PB_CLOCK / (4 * BAUD) – 1);
+	//END UART1 Initialization
 
-    // For debugging
+	
+	
+	
+	// Initialize 2 outputs used for debugging
     mPORTBClearBits(BIT_2);
     mPORTBSetPinsDigitalOut(BIT_2);
 
     mPORTBClearBits(BIT_3);
     mPORTBSetPinsDigitalOut(BIT_3);
+    
 
 
     // i2c communication is not working if this delay is removed. 

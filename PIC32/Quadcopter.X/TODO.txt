@@ -19,6 +19,9 @@ http://www.eevblog.com/forum/microcontrollers/pic32mx-quickstart/15/
 
 http://www.johnloomis.org/microchip/pic32/timer/timer.html
 
+-- guide for setting up UART and also example code
+http://www.microchip.com/forums/m571457-print.aspx
+
 
 TODO
 
