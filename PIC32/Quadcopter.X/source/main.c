@@ -7,6 +7,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+//#include <string.h>
 
 // PIC32MX250F128B Configuration Bit Settings
 
@@ -242,31 +243,31 @@ int main(int argc, char** argv)
     OC4CONSET = 0x8000;             // Enable OC4
 
 	
-	// Configure RB4 to be digital out (TX for UART)
-    mPORTBClearBits(BIT_4);
-    mPORTBSetPinsDigitalOut(BIT_4);
+    // Configure RB4 to be digital out (TX for UART)
+    //mPORTBClearBits(BIT_4);
+    //mPORTBSetPinsDigitalOut(BIT_4);
 
-	// Configure RA4 to be digital in (RX for UART)
-    mPORTASetPinsDigitalIn(BIT_4);
+    // Configure RA4 to be digital in (RX for UART)
+    //mPORTASetPinsDigitalIn(BIT_4);
 	
 
-    UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
-    UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
-    UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
-    UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
+    //UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
+    //UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
+    //UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
+    //UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
 
 	
 	// Alternative config of UART
 	//Initilize UART1
-	//int PB_CLOCK=20000000;
-	//int BAUD=9600;
-	//OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, PB_CLOCK / (4 * BAUD) – 1);
-	//END UART1 Initialization
+	int PB_CLOCK=24000000;
+	int BAUD=9600;
+        OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, PB_CLOCK / (4 * BAUD) - 1);
+        //END UART1 Initialization
 
 	
 	
 	
-	// Initialize 2 outputs used for debugging
+    // Initialize 2 outputs used for debugging
     mPORTBClearBits(BIT_2);
     mPORTBSetPinsDigitalOut(BIT_2);
 
@@ -303,6 +304,12 @@ int main(int argc, char** argv)
     // reads the register address 0x75 from the MPU6050
     i2c_read(0x75);
 */
+
+
+    char filename[50]; //Array of 50 chars
+
+    memset(filename, 0, 50 * sizeof(char));     //Clears the Array
+
     count = 0;
     while(1)
     {  
@@ -312,8 +319,32 @@ int main(int argc, char** argv)
         {
             count--;
         }
+
+        putsUART1("Hej");
         
-        Serial_print("Hej");
+        //Serial_print("Hej");
+        
+        //sprintf(filename, "Hej");
+        //Places the String into the Array
+        // ?\n? is a special char which is defined as a newline
+        //putsUART1(filename);        //Sends the Array over UART1
+
+
+
+        /*while(U1STAbits.URXDA)
+        {
+            getsUART1(50, filename, 123);       //Receives up to 50 characters from UART 1 and stores it in ?filename? array
+            U1STAbits.URXDA =0;                 //Clears the URXDA bit so the UART continues to receive
+            U1STAbits.OERR = 0;                 //Clears the OERR bit so UART clears buffer and receives new characters
+            putsUART1(filename);                //send the buffer, filename, over UART1
+            putsUART1("Hej");
+            memset(filename,0,50*sizeof(char)); //Clears the buffer
+            mPORTBToggleBits(BIT_2);
+        }*/
+
+
+
+        
 
         count = 4000000;
     }
