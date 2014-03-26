@@ -48,3 +48,6 @@ proguard/
 .idea/
 
 ADK
+PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.elf
+PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.hex
+PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.map
