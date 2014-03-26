@@ -7,7 +7,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-//#include <string.h>
 
 // PIC32MX250F128B Configuration Bit Settings
 
@@ -96,7 +95,6 @@
 #define SYS_CLOCK (48000000L)
 #define GetSystemClock()            (SYS_CLOCK)
 #define GetPeripheralClock()        (SYS_CLOCK/2)
-//#define GetInstructionClock()       (SYS_CLOCK)
 #define I2C_CLOCK_FREQ              400000
 
 // EEPROM Constants
@@ -171,10 +169,7 @@ int main(int argc, char** argv)
 */
 
 int main(int argc, char** argv)
-{
-    //mPORTBSetPinsDigitalOut(BIT_11);      // Set PB10(Tx) as output
-    //mPORTBSetPinsDigitalIn (BIT_12);      // Set PB11(Rx) as input
-
+{ 
     // Peripheral Pin Select
     SYSKEY = 0xAA996655;            // Write Key1 to SYSKEY
     SYSKEY = 0x556699AA;            // Write Key2 to SYSKEY
@@ -242,30 +237,13 @@ int main(int argc, char** argv)
     OC3CONSET = 0x8000;             // Enable OC3
     OC4CONSET = 0x8000;             // Enable OC4
 
-	
-    // Configure RB4 to be digital out (TX for UART)
-    //mPORTBClearBits(BIT_4);
-    //mPORTBSetPinsDigitalOut(BIT_4);
 
-    // Configure RA4 to be digital in (RX for UART)
-    //mPORTASetPinsDigitalIn(BIT_4);
-	
+    // Configure UART1
+    UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
+    UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
+    UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
+    UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
 
-    //UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
-    //UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
-    //UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
-    //UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
-
-	
-	// Alternative config of UART
-	//Initilize UART1
-	int PB_CLOCK=24000000;
-	int BAUD=9600;
-        OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, PB_CLOCK / (4 * BAUD) - 1);
-        //END UART1 Initialization
-
-	
-	
 	
     // Initialize 2 outputs used for debugging
     mPORTBClearBits(BIT_2);
@@ -283,32 +261,31 @@ int main(int argc, char** argv)
     while( count < 4000000 )
     {
         count++;
-    }    
-
-    // Initialize debug messages (when supported)
-    //DBINIT();
+    } 
 
 
+    char filename[50]; //Array of 50 chars
 
-/*
+    memset(filename, 0, 50 * sizeof(char));     //Clears the Array
+
+
     // Set the I2C baudrate
     actualClock = I2CSetFrequency(MPU6050_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
-    {
-        //DBPRINTF("Error: I2C1 clock frequency (%u) error exceeds 10%%.\n", (unsigned)actualClock);       
+    {        
+        putsUART1( "Error: I2C1 clock frequency. Error exceeds 10%%.\n" );
     }
 
     // Enable the I2C bus
     I2CEnable(MPU6050_I2C_BUS, TRUE);
 
     // reads the register address 0x75 from the MPU6050
-    i2c_read(0x75);
-*/
+    //i2c_read(0x75);
 
 
-    char filename[50]; //Array of 50 chars
+    //UINT8 kh_test = 'X';
 
-    memset(filename, 0, 50 * sizeof(char));     //Clears the Array
+    mPORTBSetBits(BIT_2);
 
     count = 0;
     while(1)
@@ -320,10 +297,54 @@ int main(int argc, char** argv)
             count--;
         }
 
-        putsUART1("Hej");
+        //putsUART1("Hej");
         
-        //Serial_print("Hej");
-        
+        //Serial_print("san");
+
+        //kh_test = i2c_read(0x75);
+
+        mPORTBSetBits(BIT_3);
+
+        //filename[0] = i2c_read(0x75);
+        //filename[1] = '\0';
+
+        char kh_test = i2c_read(0x75);
+
+
+        if( kh_test == 0x68 )
+        {
+            putsUART1( "Address is 0x68  " );
+        }
+        else
+        {
+            putsUART1( "Address is not 0x68  " );
+        }
+
+        //sprintf(filename, "Address: %u\n", kh_test);
+        //putsUART1( filename );
+
+        //sprintf(filename, "Address: %d\n", (char *)kh_test);
+        //putsUART1( filename );
+
+        //sprintf(filename, "Address: %d  ", (int)kh_test);
+        //putsUART1( filename );
+
+        //memset(filename, 0, 50 * sizeof(char));     //Clears the Array
+
+        //float test;
+        //char strig[20];
+
+        //DoubleToAscii(test, strig);
+
+        putsUART1( "Address: " );
+        putsUART1(  );
+        atoi('h')
+
+        itoa()
+
+
+      //  filename[0] = '\0';
+
         //sprintf(filename, "Hej");
         //Places the String into the Array
         // ?\n? is a special char which is defined as a newline
@@ -675,10 +696,10 @@ UINT8 i2c_read( UINT8 regAddress )
     {
         //while(1);
 
-        mPORTBSetBits(BIT_2);
-        mPORTBClearBits(BIT_3);
+        //mPORTBSetBits(BIT_2);
+        //mPORTBClearBits(BIT_3);
     }
-
+/*
     if( i2cbyte == 0x68 )
     {
         mPORTBSetBits(BIT_2);
@@ -689,7 +710,7 @@ UINT8 i2c_read( UINT8 regAddress )
         //mPORTBSetBits(BIT_2);
         //mPORTBClearBits(BIT_3);
     }
-
+*/
     return i2cbyte;
 }
 
