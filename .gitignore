@@ -1,5 +1,6 @@
 # Object files
 *.o
+*.o.d
 *.ko
 
 # Libraries
@@ -30,6 +31,9 @@
 # generated files
 bin/
 gen/
+*.hex
+*.elf
+*.map
 
 # Local configuration file (sdk path, etc)
 local.properties
@@ -46,8 +50,3 @@ proguard/
 *.ipr
 *.iws
 .idea/
-
-ADK
-PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.elf
-PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.hex
-PIC32/Quadcopter.X/dist/default/production/Quadcopter.X.production.map
