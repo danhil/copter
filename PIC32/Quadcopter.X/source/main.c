@@ -372,6 +372,47 @@ int main(int argc, char** argv)
     return (EXIT_SUCCESS);
 }
 
+void itoa( INT16 nr )
+{	
+	char string[6];
+	INT16 nr2;
+	
+	char index = 0;
+	char size = 0;
+	
+	if (nr == 0)		// deals with the special case of convertng a 0.
+	{
+		string[ index++ ] = '0';
+	}
+	else if (nr < 0)	// if negative number, add negative sign in string and remove negative sign in the number
+	{
+		string[ index++ ] = '-';
+		nr = -nr;
+	}
+	
+	nr2 = nr;	
+	
+	while( nr2 > 0 )
+	{
+		nr2 /= 10;
+		size++;	
+	}
+	
+	string[ index + size ] = '\0';
+	index = size - 1;
+	
+	while( size > 0 )
+	{
+		string[ index-- ] = nr % 10 + 48;		
+		nr /= 10;
+		size--;	
+	}	
+	
+	string[ index ] = '\0';	
+	
+	return string;
+}
+
 // Timer3 ISR
 void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
 {
