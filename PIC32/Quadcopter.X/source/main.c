@@ -85,7 +85,7 @@
 #define PWM_FACTOR          ( (PWM_MAX_DC - PWM_MIN_DC) / 100 )
 
 // Converts the 0-100% signal into the correct value for the
-// duty cycle register and sets that rgeister.
+// duty cycle register and sets that register.
 #define Set_pwm( duty_cycle_in_percent ) ( OC1RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 #define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
 #define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
@@ -113,6 +113,7 @@ UINT8 i2c_read( UINT8 regAddress );
 BOOL i2c_write(UINT8 regAddress, UINT8 data);
 
 void Serial_print(char *buffer);
+char& itoa( INT16 nr );
 
 char forward = 1;
 char pwm_signal = 0;
@@ -320,37 +321,26 @@ int main(int argc, char** argv)
             putsUART1( "Address is not 0x68  " );
         }
 
-        //sprintf(filename, "Address: %u\n", kh_test);
-        //putsUART1( filename );
+		char CR[2] = {13,'\0'};
+		char LF[2] = {10,'\0'};
 
-        //sprintf(filename, "Address: %d\n", (char *)kh_test);
-        //putsUART1( filename );
-
-        //sprintf(filename, "Address: %d  ", (int)kh_test);
-        //putsUART1( filename );
-
-        //memset(filename, 0, 50 * sizeof(char));     //Clears the Array
-
-        //float test;
-        //char strig[20];
-
-        //DoubleToAscii(test, strig);
-
-        putsUART1( "Address: " );
-        putsUART1(  );
-        atoi('h')
-
-        itoa()
-
-
-      //  filename[0] = '\0';
-
-        //sprintf(filename, "Hej");
-        //Places the String into the Array
-        // ?\n? is a special char which is defined as a newline
-        //putsUART1(filename);        //Sends the Array over UART1
-
-
+        putsUART1( "Device Address: " );
+        putsUART1( itoa( kh_test ) );
+		putsUART1( CR );
+		
+		
+		
+		
+		putsUART1( "Device Data: " );
+        putsUART1( itoa( kh_test ) );
+		putsUART1( CR );
+		
+		
+		
+		
+		
+		
+		
 
         /*while(U1STAbits.URXDA)
         {
@@ -372,7 +362,7 @@ int main(int argc, char** argv)
     return (EXIT_SUCCESS);
 }
 
-void itoa( INT16 nr )
+char& itoa( INT16 nr )
 {	
 	char string[6];
 	INT16 nr2;
