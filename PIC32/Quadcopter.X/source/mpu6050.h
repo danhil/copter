@@ -143,14 +143,15 @@ using namespace std;
 #define MPU6050_RA_WHO_AM_I 0x75
 
 
+
 class MPU6050
 {
     public:
-        MPU6050(void); 													// default constructor
-        MPU6050( I2C_MODULE busNumber , UINT8 dev_addr );     //over loaded constructor
+        MPU6050(void);                                                  // default constructor
+        MPU6050( I2C_MODULE new_i2cBusId, UINT8 new_devAddress );     //over loaded constructor
         ~MPU6050(void);
 
-        void MPU6050_Test_I2C();
+        char MPU6050_Test_I2C();
         void Setup_MPU6050();
         void Calibrate_Gyros();
         void Get_Accel_Values();

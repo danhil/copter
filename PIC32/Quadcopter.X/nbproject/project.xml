@@ -5,10 +5,11 @@
             <name>Quadcopter</name>
             <creation-uuid>032f8dbd-5e8c-4dcd-9771-0057eff3748c</creation-uuid>
             <make-project-type>0</make-project-type>
-            <c-extensions>c</c-extensions>
+            <c-extensions/>
             <cpp-extensions>cpp</cpp-extensions>
             <header-extensions>h</header-extensions>
             <sourceEncoding>ISO-8859-1</sourceEncoding>
+            <asminc-extensions/>
             <make-dep-projects/>
         </data>
     </configuration>

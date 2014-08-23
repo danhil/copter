@@ -45,17 +45,17 @@ OBJECTDIR=build/${CND_CONF}/${IMAGE_TYPE}
 DISTDIR=dist/${CND_CONF}/${IMAGE_TYPE}
 
 # Source Files Quoted if spaced
-SOURCEFILES_QUOTED_IF_SPACED=source/main.c source/mpu6050.cpp
+SOURCEFILES_QUOTED_IF_SPACED=source/mpu6050.cpp source/main.cpp
 
 # Object Files Quoted if spaced
-OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/source/main.o ${OBJECTDIR}/source/mpu6050.o
-POSSIBLE_DEPFILES=${OBJECTDIR}/source/main.o.d ${OBJECTDIR}/source/mpu6050.o.d
+OBJECTFILES_QUOTED_IF_SPACED=${OBJECTDIR}/source/mpu6050.o ${OBJECTDIR}/source/main.o
+POSSIBLE_DEPFILES=${OBJECTDIR}/source/mpu6050.o.d ${OBJECTDIR}/source/main.o.d
 
 # Object Files
-OBJECTFILES=${OBJECTDIR}/source/main.o ${OBJECTDIR}/source/mpu6050.o
+OBJECTFILES=${OBJECTDIR}/source/mpu6050.o ${OBJECTDIR}/source/main.o
 
 # Source Files
-SOURCEFILES=source/main.c source/mpu6050.cpp
+SOURCEFILES=source/mpu6050.cpp source/main.cpp
 
 
 CFLAGS=
@@ -72,7 +72,7 @@ LDLIBSOPTIONS=
 FIXDEPS=fixDeps
 
 .build-conf:  ${BUILD_SUBPROJECTS}
-	${MAKE} ${MAKE_OPTIONS} -f nbproject/Makefile-default.mk dist/${CND_CONF}/${IMAGE_TYPE}/Quadcopter.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
+	${MAKE}  -f nbproject/Makefile-default.mk dist/${CND_CONF}/${IMAGE_TYPE}/Quadcopter.X.${IMAGE_TYPE}.${OUTPUT_SUFFIX}
 
 MP_PROCESSOR_OPTION=32MX250F128B
 MP_LINKER_FILE_OPTION=
@@ -91,19 +91,7 @@ endif
 # ------------------------------------------------------------------------------------
 # Rules for buildStep: compile
 ifeq ($(TYPE_IMAGE), DEBUG_RUN)
-${OBJECTDIR}/source/main.o: source/main.c  nbproject/Makefile-${CND_CONF}.mk
-	@${MKDIR} ${OBJECTDIR}/source 
-	@${RM} ${OBJECTDIR}/source/main.o.d 
-	@${RM} ${OBJECTDIR}/source/main.o 
-	@${FIXDEPS} "${OBJECTDIR}/source/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC}  $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/source/main.o.d" -o ${OBJECTDIR}/source/main.o source/main.c   
-	
 else
-${OBJECTDIR}/source/main.o: source/main.c  nbproject/Makefile-${CND_CONF}.mk
-	@${MKDIR} ${OBJECTDIR}/source 
-	@${RM} ${OBJECTDIR}/source/main.o.d 
-	@${RM} ${OBJECTDIR}/source/main.o 
-	@${FIXDEPS} "${OBJECTDIR}/source/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC}  $(MP_EXTRA_CC_PRE)  -g -x c -c -mprocessor=$(MP_PROCESSOR_OPTION)  -MMD -MF "${OBJECTDIR}/source/main.o.d" -o ${OBJECTDIR}/source/main.o source/main.c   
-	
 endif
 
 # ------------------------------------------------------------------------------------
@@ -115,12 +103,24 @@ ${OBJECTDIR}/source/mpu6050.o: source/mpu6050.cpp  nbproject/Makefile-${CND_CONF
 	@${RM} ${OBJECTDIR}/source/mpu6050.o 
 	@${FIXDEPS} "${OBJECTDIR}/source/mpu6050.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC} $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c++ -c -mprocessor=$(MP_PROCESSOR_OPTION)  -frtti -fexceptions -fno-check-new -fenforce-eh-specs -MMD -MF "${OBJECTDIR}/source/mpu6050.o.d" -o ${OBJECTDIR}/source/mpu6050.o source/mpu6050.cpp  
 	
+${OBJECTDIR}/source/main.o: source/main.cpp  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR}/source 
+	@${RM} ${OBJECTDIR}/source/main.o.d 
+	@${RM} ${OBJECTDIR}/source/main.o 
+	@${FIXDEPS} "${OBJECTDIR}/source/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC} $(MP_EXTRA_CC_PRE) -g -D__DEBUG -D__MPLAB_DEBUGGER_PK3=1 -fframe-base-loclist  -x c++ -c -mprocessor=$(MP_PROCESSOR_OPTION)  -frtti -fexceptions -fno-check-new -fenforce-eh-specs -MMD -MF "${OBJECTDIR}/source/main.o.d" -o ${OBJECTDIR}/source/main.o source/main.cpp  
+	
 else
 ${OBJECTDIR}/source/mpu6050.o: source/mpu6050.cpp  nbproject/Makefile-${CND_CONF}.mk
 	@${MKDIR} ${OBJECTDIR}/source 
 	@${RM} ${OBJECTDIR}/source/mpu6050.o.d 
 	@${RM} ${OBJECTDIR}/source/mpu6050.o 
 	@${FIXDEPS} "${OBJECTDIR}/source/mpu6050.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC} $(MP_EXTRA_CC_PRE)  -g -x c++ -c -mprocessor=$(MP_PROCESSOR_OPTION)  -frtti -fexceptions -fno-check-new -fenforce-eh-specs -MMD -MF "${OBJECTDIR}/source/mpu6050.o.d" -o ${OBJECTDIR}/source/mpu6050.o source/mpu6050.cpp  
+	
+${OBJECTDIR}/source/main.o: source/main.cpp  nbproject/Makefile-${CND_CONF}.mk
+	@${MKDIR} ${OBJECTDIR}/source 
+	@${RM} ${OBJECTDIR}/source/main.o.d 
+	@${RM} ${OBJECTDIR}/source/main.o 
+	@${FIXDEPS} "${OBJECTDIR}/source/main.o.d" $(SILENT) -rsi ${MP_CC_DIR}../  -c ${MP_CPPC} $(MP_EXTRA_CC_PRE)  -g -x c++ -c -mprocessor=$(MP_PROCESSOR_OPTION)  -frtti -fexceptions -fno-check-new -fenforce-eh-specs -MMD -MF "${OBJECTDIR}/source/main.o.d" -o ${OBJECTDIR}/source/main.o source/main.cpp  
 	
 endif
 

@@ -13,6 +13,8 @@
 #include <xc.h>
 #include <plib.h>
 
+#include "mpu6050.h"
+
 // DEVCFG3
 // USERID = No Setting
 #pragma config PMDL1WAY = OFF           // Peripheral Module Disable Configuration (Allow multiple reconfigurations)
@@ -98,11 +100,11 @@
 #define I2C_CLOCK_FREQ              400000
 
 // EEPROM Constants
-#define MPU6050_I2C_BUS              I2C1
-#define MPU6050_ADDRESS              0x68        // 0b1101000 MPU6050 address
-//#define EEPROM_ADDRESS              0x50        // 0b1010000 Serial EEPROM address
+#define MPU6050_I2C_BUS             I2C1
+#define MPU6050_ADDRESS             0x68        // 0b1101000 MPU6050 address
+//#define EEPROM_ADDRESS            0x50        // 0b1010000 Serial EEPROM address
 
-#define UARTBaudRate                    9600
+#define UARTBaudRate                9600
 
 
 BOOL StartTransfer( BOOL restart );
@@ -113,7 +115,7 @@ UINT8 i2c_read( UINT8 regAddress );
 BOOL i2c_write(UINT8 regAddress, UINT8 data);
 
 void Serial_print(char *buffer);
-char& itoa( INT16 nr );
+char* itoa( INT16 nr, char *string );
 
 char forward = 1;
 char pwm_signal = 0;
@@ -200,19 +202,33 @@ int main(int argc, char** argv)
 
     unsigned int        count = 0;          // loop variable
 
+    float AccX, AccY, AccZ;
+    float GyroX, GyroY, GyroZ;
+    float AngleY = 0;
+
+    char DebugStr[12];
+    int i;
+    char CR[2] = {13,'\0'};
+    char LF[2] = {10,'\0'};
+
+    UINT8 kh_test;
+    char filename[55];                         //Array of 50 chars
+    //memset(filename,0,55*sizeof(char));         //Clears the Array
+    //sprintf(filename, "Tutorial 4 ? UART Communication\nIncrementing Variable\n");    //Places the String into the Array
+
     // End of Variable declarations
 
 
-    INTEnableSystemMultiVectoredInt();      // Enable system wide interrupt to
+    //INTEnableSystemMultiVectoredInt();      // Enable system wide interrupt to
                                             // multivectored mode.
 
 
     // Configure the Output Compare channels for PWM mode using Timer3
     // setup output compare channel #1 - RD0
-    OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
     
 
     // Configure Timer3 interrupt. Note that in PWM mode, the
@@ -225,25 +241,32 @@ int main(int argc, char** argv)
     //IPC2SET = 0x0000001C;           // Set T2 interrupt priority to 7
 
     // Interrupt setup for Timer3
-    IFS0CLR = 0x00004000;           // Clear the T3 interrupt flag
-    IEC0SET = 0x00004000;           // Enable T3 interrupt
-    IPC3SET = 0x0000001C;           // Set T3 interrupt priority to 7
+    //IFS0CLR = 0x00004000;           // Clear the T3 interrupt flag
+    //IEC0SET = 0x00004000;           // Enable T3 interrupt
+    //IPC3SET = 0x0000001C;           // Set T3 interrupt priority to 7
     
     // Configure Timer3
     // Timer3 generates 20ms period for PWM
-    OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
+    //OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
 
-    OC1CONSET = 0x8000;             // Enable OC1
-    OC2CONSET = 0x8000;             // Enable OC2
-    OC3CONSET = 0x8000;             // Enable OC3
-    OC4CONSET = 0x8000;             // Enable OC4
+    //OC1CONSET = 0x8000;             // Enable OC1
+    //OC2CONSET = 0x8000;             // Enable OC2
+    //OC3CONSET = 0x8000;             // Enable OC3
+    //OC4CONSET = 0x8000;             // Enable OC4
 
 
     // Configure UART1
-    UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
-    UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
-    UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
-    UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
+    //UARTConfigure(UART1, UART_ENABLE_PINS_TX_RX_ONLY);
+    //UARTSetLineControl(UART1, UART_DATA_SIZE_8_BITS | UART_PARITY_NONE | UART_STOP_BITS_1);
+    //UARTSetLineControl(UART1, 0 | UART_PARITY_NONE | UART_STOP_BITS_1);
+
+    //UARTSetDataRate(UART1, GetPeripheralClock(), UARTBaudRate);
+    //UARTEnable(UART1, UART_ENABLE_FLAGS(UART_PERIPHERAL | UART_RX | UART_TX));
+
+    //Initilize UART1
+    OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, GetPeripheralClock() / (4 * UARTBaudRate) - 1);
+    //END UART1 Initialization 
+
 
 	
     // Initialize 2 outputs used for debugging
@@ -252,8 +275,6 @@ int main(int argc, char** argv)
 
     mPORTBClearBits(BIT_3);
     mPORTBSetPinsDigitalOut(BIT_3);
-    
-
 
     // i2c communication is not working if this delay is removed. 
     // The loop time may very well be shortened (not tested).
@@ -262,31 +283,42 @@ int main(int argc, char** argv)
     while( count < 4000000 )
     {
         count++;
-    } 
+    }
 
+    sprintf(filename, "Debug interface via UART/USB started.\n");
+    putsUART1( filename );
 
-    char filename[50]; //Array of 50 chars
-
-    memset(filename, 0, 50 * sizeof(char));     //Clears the Array
-
-
+/*
     // Set the I2C baudrate
     actualClock = I2CSetFrequency(MPU6050_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
     {        
-        putsUART1( "Error: I2C1 clock frequency. Error exceeds 10%%.\n" );
+        //putsUART1( "Error: I2C1 clock frequency. Error exceeds 10%%.\n" );
     }
 
     // Enable the I2C bus
     I2CEnable(MPU6050_I2C_BUS, TRUE);
 
-    // reads the register address 0x75 from the MPU6050
-    //i2c_read(0x75);
+*/
+    //MPU6050 MPU6050dev(MPU6050_I2C_BUS, MPU6050_ADDRESS);
+    MPU6050 MPU6050dev;
+
+    kh_test = MPU6050dev.MPU6050_Test_I2C();
+
+    sprintf(filename, "I2C address: %d\n", kh_test );
+    putsUART1( filename );
+
+    //fastnar i setup-funktionen. felsök denna funktion m.h.a PORTB bit2/3.
+    MPU6050dev.Setup_MPU6050();    
+
+    MPU6050dev.Calibrate_Gyros();
+    
+
+    //mPORTBSetBits(BIT_2);
 
 
-    //UINT8 kh_test = 'X';
-
-    mPORTBSetBits(BIT_2);
+    sprintf(filename, "\n\n\nMPU6050 Setup completed!\n\n\n");
+    putsUART1( filename );
 
     count = 0;
     while(1)
@@ -298,49 +330,64 @@ int main(int argc, char** argv)
             count--;
         }
 
-        //putsUART1("Hej");
-        
-        //Serial_print("san");
-
         //kh_test = i2c_read(0x75);
 
-        mPORTBSetBits(BIT_3);
+        //mPORTBSetBits(BIT_3);
 
-        //filename[0] = i2c_read(0x75);
-        //filename[1] = '\0';
+        
 
-        char kh_test = i2c_read(0x75);
-
-
-        if( kh_test == 0x68 )
+        
+/*
+        if( kh_test != 0x68 )
         {
-            putsUART1( "Address is 0x68  " );
+            putsUART1( "Address is not 0x68  \0" );
         }
         else
         {
-            putsUART1( "Address is not 0x68  " );
+            putsUART1( "BAddress is 0x68  \0" );
         }
+*/
+        /*i = 0;
+        while(i < 55 )
+        {
+            putcUART1(filename[i]);      //Sends the Array over UART1
+            i = i + 1;
+        }*/
 
-		char CR[2] = {13,'\0'};
-		char LF[2] = {10,'\0'};
+        //mPORTBToggleBits(BIT_2);
 
-        putsUART1( "Device Address: " );
-        putsUART1( itoa( kh_test ) );
-		putsUART1( CR );
-		
-		
-		
-		
-		putsUART1( "Device Data: " );
-        putsUART1( itoa( kh_test ) );
-		putsUART1( CR );
-		
-		
-		
-		
-		
-		
-		
+              
+        
+
+        MPU6050dev.Get_Accel_Values();
+        //MPU6050dev.Get_Accel_Angles();
+
+        MPU6050dev.Get_Gyro_Rates();
+
+        //value = MPU6050dev.GetAngle();
+
+        AccX = MPU6050dev.GetAccX();
+        AccY = MPU6050dev.GetAccY();
+        AccZ = MPU6050dev.GetAccZ();
+
+        GyroX = MPU6050dev.GetGyroX();
+        GyroY = MPU6050dev.GetGyroY();	// 177	// ska inte vara 177 längre. Har ändra skalningen så att GyroY ska vara grader/s
+        GyroZ = MPU6050dev.GetGyroZ();
+
+        //AccY = ( -AccX + 800 ) / 177;		// 177 	// 93.6
+        AccY = ( -AccX );
+
+        AngleY = (0.98)*(AngleY + GyroY/117) + (0.02)*( (AccY * 90) + 5.7 );	// Loopen går i ca 117 Hz
+
+        //kh_test = MPU6050dev.MPU6050_Test_I2C();
+        //sprintf(filename, "Angle: %f\n", AccX );
+        //putsUART1( filename );
+
+        kh_test = MPU6050dev.MPU6050_Test_I2C();
+
+        sprintf(filename, "I2C address: %d\n", kh_test );
+        putsUART1( filename );
+
 
         /*while(U1STAbits.URXDA)
         {
@@ -362,47 +409,47 @@ int main(int argc, char** argv)
     return (EXIT_SUCCESS);
 }
 
-char& itoa( INT16 nr )
+char* itoa( INT16 nr, char *string )
 {	
-	char string[6];
-	INT16 nr2;
+    //char string[6];
+    INT16 nr2;
 	
-	char index = 0;
-	char size = 0;
-	
-	if (nr == 0)		// deals with the special case of convertng a 0.
-	{
-		string[ index++ ] = '0';
-	}
-	else if (nr < 0)	// if negative number, add negative sign in string and remove negative sign in the number
-	{
-		string[ index++ ] = '-';
-		nr = -nr;
-	}
-	
-	nr2 = nr;	
-	
-	while( nr2 > 0 )
-	{
-		nr2 /= 10;
-		size++;	
-	}
-	
-	string[ index + size ] = '\0';
-	index = size - 1;
-	
-	while( size > 0 )
-	{
-		string[ index-- ] = nr % 10 + 48;		
-		nr /= 10;
-		size--;	
-	}	
-	
-	string[ index ] = '\0';	
-	
-	return string;
-}
+    char index = 0;
+    char size = 0;
 
+    if (nr == 0) // deals with the special case of convertng a 0.
+    {
+        string[ index++ ] = '0';
+    }
+    else if (nr < 0) // if negative number, add negative sign in string and remove negative sign in the number
+    {
+        string[ index++ ] = '-';
+        nr = -nr;
+    }
+
+    nr2 = nr;
+
+    while (nr2 > 0)
+    {
+        nr2 /= 10;
+        size++;
+    }
+
+    string[ index + size ] = '\0';
+    index = size - 1;
+
+    while (size > 0)
+    {
+        string[ index-- ] = nr % 10 + 48;
+        nr /= 10;
+        size--;
+    }
+
+    string[ index ] = '\0';
+
+    return string;
+}
+/*
 // Timer3 ISR
 void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
 {
@@ -438,7 +485,7 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     }
     IFS0CLR = 0x4000;                   // Clearing Timer3 interrupt flag
 }
-
+*/
 /*******************************************************************************
   Function:
     BOOL StartTransfer( BOOL restart )
@@ -544,7 +591,10 @@ BOOL TransmitOneByte( UINT8 data )
     UINT16 count = 0;
 
     // Wait for the transmitter to be ready
-    //while(!I2CTransmitterIsReady(MPU6050_I2C_BUS));
+    while( !I2CTransmitterIsReady(MPU6050_I2C_BUS) && count < 64000 )
+    {
+        count++;
+    }
 
     if( I2CTransmitterIsReady(MPU6050_I2C_BUS) )
     {
