@@ -95,9 +95,9 @@
 
 
 #define SYS_CLOCK (48000000L)
-#define GetSystemClock()            (SYS_CLOCK)
+//#define GetSystemClock()            (SYS_CLOCK)
 #define GetPeripheralClock()        (SYS_CLOCK/2)
-#define I2C_CLOCK_FREQ              400000
+//#define I2C_CLOCK_FREQ              400000
 
 // EEPROM Constants
 #define MPU6050_I2C_BUS             I2C1
@@ -107,15 +107,15 @@
 #define UARTBaudRate                9600
 
 
-BOOL StartTransfer( BOOL restart );
-BOOL TransmitOneByte( UINT8 data );
-void StopTransfer( void );
+//BOOL StartTransfer( BOOL restart );
+//BOOL TransmitOneByte( UINT8 data );
+//void StopTransfer( void );
 
-UINT8 i2c_read( UINT8 regAddress );
-BOOL i2c_write(UINT8 regAddress, UINT8 data);
+//UINT8 i2c_read( UINT8 regAddress );
+//BOOL i2c_write(UINT8 regAddress, UINT8 data);
 
-void Serial_print(char *buffer);
-char* itoa( INT16 nr, char *string );
+//void Serial_print(char *buffer);
+//char* itoa( INT16 nr, char *string );
 
 char forward = 1;
 char pwm_signal = 0;
@@ -244,7 +244,11 @@ int main(int argc, char** argv)
     //IFS0CLR = 0x00004000;           // Clear the T3 interrupt flag
     //IEC0SET = 0x00004000;           // Enable T3 interrupt
     //IPC3SET = 0x0000001C;           // Set T3 interrupt priority to 7
-    
+
+    // Configure Timer2
+    // Timer2 generates 1ms period
+    OpenTimer2(T2_ON | T2_PS_1_1, 24000);
+
     // Configure Timer3
     // Timer3 generates 20ms period for PWM
     //OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
@@ -267,7 +271,8 @@ int main(int argc, char** argv)
     OpenUART1(UART_EN|UART_BRGH_FOUR, UART_RX_ENABLE | UART_TX_ENABLE, GetPeripheralClock() / (4 * UARTBaudRate) - 1);
     //END UART1 Initialization 
 
-
+    sprintf(filename, "Debug interface via UART/USB started.\n");
+    putsUART1( filename );
 	
     // Initialize 2 outputs used for debugging
     mPORTBClearBits(BIT_2);
@@ -279,27 +284,14 @@ int main(int argc, char** argv)
     // i2c communication is not working if this delay is removed. 
     // The loop time may very well be shortened (not tested).
     // The MPU6050 probably need some time to initialized after power on.
-    count = 0;
     while( count < 4000000 )
     {
-        count++;
+        ++count;
     }
 
-    sprintf(filename, "Debug interface via UART/USB started.\n");
+    sprintf(filename, "Startup delay complete\n");
     putsUART1( filename );
 
-/*
-    // Set the I2C baudrate
-    actualClock = I2CSetFrequency(MPU6050_I2C_BUS, GetPeripheralClock(), I2C_CLOCK_FREQ);
-    if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
-    {        
-        //putsUART1( "Error: I2C1 clock frequency. Error exceeds 10%%.\n" );
-    }
-
-    // Enable the I2C bus
-    I2CEnable(MPU6050_I2C_BUS, TRUE);
-
-*/
     //MPU6050 MPU6050dev(MPU6050_I2C_BUS, MPU6050_ADDRESS);
     MPU6050 MPU6050dev;
 
@@ -309,7 +301,11 @@ int main(int argc, char** argv)
     putsUART1( filename );
 
     //fastnar i setup-funktionen. felsök denna funktion m.h.a PORTB bit2/3.
-    MPU6050dev.Setup_MPU6050();    
+    MPU6050dev.Setup_MPU6050();
+
+
+    sprintf(filename, "\n\n\nMPU6050 Setup completed!\n\n\n");
+    putsUART1( filename );
 
     MPU6050dev.Calibrate_Gyros();
     
@@ -317,8 +313,6 @@ int main(int argc, char** argv)
     //mPORTBSetBits(BIT_2);
 
 
-    sprintf(filename, "\n\n\nMPU6050 Setup completed!\n\n\n");
-    putsUART1( filename );
 
     count = 0;
     while(1)
@@ -383,9 +377,9 @@ int main(int argc, char** argv)
         //sprintf(filename, "Angle: %f\n", AccX );
         //putsUART1( filename );
 
-        kh_test = MPU6050dev.MPU6050_Test_I2C();
+        //kh_test = MPU6050dev.MPU6050_Test_I2C();
 
-        sprintf(filename, "I2C address: %d\n", kh_test );
+        sprintf(filename, "Y Angle: %f\n", AngleY );
         putsUART1( filename );
 
 
@@ -404,11 +398,11 @@ int main(int argc, char** argv)
 
         
 
-        count = 4000000;
+        count = 400000;
     }
     return (EXIT_SUCCESS);
 }
-
+/*
 char* itoa( INT16 nr, char *string )
 {	
     //char string[6];
@@ -449,6 +443,7 @@ char* itoa( INT16 nr, char *string )
 
     return string;
 }
+*/
 /*
 // Timer3 ISR
 void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
@@ -514,7 +509,7 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler (void)
     </code>
  
   *****************************************************************************/
-
+/*
 BOOL StartTransfer( BOOL restart )
 {
     I2C_STATUS  status;
@@ -556,7 +551,7 @@ BOOL StartTransfer( BOOL restart )
 
     return TRUE;
 }
-
+*/
 
 /*******************************************************************************
   Function:
@@ -585,7 +580,7 @@ BOOL StartTransfer( BOOL restart )
     </code>
   
   *****************************************************************************/
-
+/*
 BOOL TransmitOneByte( UINT8 data )
 {
     UINT16 count = 0;
@@ -619,7 +614,7 @@ BOOL TransmitOneByte( UINT8 data )
 
     return TRUE;
 }
-
+*/
 
 /*******************************************************************************
   Function:
@@ -647,7 +642,7 @@ BOOL TransmitOneByte( UINT8 data )
     </code>
  
   *****************************************************************************/
-
+/*
 void StopTransfer( void )
 {
     I2C_STATUS  status;
@@ -664,7 +659,7 @@ void StopTransfer( void )
 
     } while ( !(status & I2C_STOP) && count < 200);
 }
-
+*/
 /*******************************************************************************
   Function:
     UINT8 i2c_read( UINT8 regAddress )
@@ -682,7 +677,7 @@ void StopTransfer( void )
     Content of the register that was read.
 
   *****************************************************************************/
-
+/*
 UINT8 i2c_read( UINT8 regAddress )
 {
     // Variable declarations
@@ -780,7 +775,7 @@ UINT8 i2c_read( UINT8 regAddress )
         //mPORTBSetBits(BIT_2);
         //mPORTBClearBits(BIT_3);
     }
-/*
+
     if( i2cbyte == 0x68 )
     {
         mPORTBSetBits(BIT_2);
@@ -791,10 +786,11 @@ UINT8 i2c_read( UINT8 regAddress )
         //mPORTBSetBits(BIT_2);
         //mPORTBClearBits(BIT_3);
     }
-*/
+
     return i2cbyte;
 }
-
+*/
+/*
 BOOL i2c_write(UINT8 regAddress, UINT8 data)
 {
     UINT8               i2cData[10];
@@ -867,8 +863,8 @@ BOOL i2c_write(UINT8 regAddress, UINT8 data)
     }
     return Success;
 }
-
-
+*/
+/*
 void Serial_print(char *buffer)
 {
    while(*buffer != (char)0)
@@ -880,3 +876,4 @@ void Serial_print(char *buffer)
    UARTSendDataByte(UART1, '\r');
    UARTSendDataByte(UART1, '\n');
 }
+*/

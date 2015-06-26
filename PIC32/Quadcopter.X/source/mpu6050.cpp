@@ -131,10 +131,10 @@ void MPU6050::Setup_MPU6050()
     //mPORTBSetBits(BIT_2);
 
     //Sets sample rate to 8000/1+7 = 1000Hz
-    writeReg(MPU6050_RA_SMPLRT_DIV, 0x07);
+    BOOL test = writeReg(MPU6050_RA_SMPLRT_DIV, 0x07);
     //Disable FSync, 256Hz DLPF
 
-    /*
+    
     writeReg(MPU6050_RA_CONFIG, 0x00);
     //Disable gyro self tests, scale of 500 degrees/s
     writeReg(MPU6050_RA_GYRO_CONFIG, 0b00001000);
@@ -252,10 +252,10 @@ void MPU6050::Setup_MPU6050()
     //Data transfer to and from the FIFO buffer
     writeReg(MPU6050_RA_FIFO_R_W, 0x00);
     //MPU6050_RA_WHO_AM_I             //Read-only, I2C address
-*/
+
     //cout << "MPU6050 Setup Complete" << endl;
 
-    sprintf(filename, "writeReg() completed!\n");
+    sprintf(filename, "writeReg() completed! STATUS = %d\n", test);
     putsUART1( filename );
 }
 
@@ -418,6 +418,12 @@ BOOL MPU6050::I2CInit()
     INT32 actualClock;
     BOOL Success = TRUE;
 
+    // Added but not tested yet. This is not included in example from Microchip.
+    //However it is included in the following example:
+    //https://gobotronics.wordpress.com/2010/12/09/i2c-eeprom-pic32/
+    //I2CConfigure(this->i2cBusId, I2C_ENABLE_SLAVE_CLOCK_STRETCHING | I2C_ENABLE_HIGH_SPEED);
+    I2CConfigure(this->i2cBusId, I2C_ENABLE_HIGH_SPEED);
+    
     // Set the I2C baudrate
     actualClock = I2CSetFrequency( this->i2cBusId, GetPeripheralClock(), I2C_CLOCK_FREQ );
     if ( abs(actualClock-I2C_CLOCK_FREQ) > I2C_CLOCK_FREQ/10 )
@@ -699,15 +705,11 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
     while( Success && (Index < DataSz) )
     {
         // Transmit a byte
-        if (TransmitOneByte(i2cData[Index]))
-        {
-            // Advance to the next byte
-            Index++;
-
+        if (TransmitOneByte(i2cData[Index++]))
+        {   
             // Verify that the byte was acknowledged
             if(!I2CByteWasAcknowledged( this->i2cBusId ))
-            {
-                //DBPRINTF("Error: Sent byte was not acknowledged\n");
+            {               
                 Success = FALSE;
 
                 sprintf( filename, "Error in #1 I2CByteWasAcknowledged(): when writing address %u.\n", (unsigned)regAddress );
@@ -749,17 +751,20 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
 
                 if( !Acknowledged )
                 {
-                    sprintf( filename, "Error in #2 I2CByteWasAcknowledged(): when writing address %u.\n", (unsigned)regAddress );
+                    sprintf( filename, "!Acknowledged %u.\n", (unsigned)regAddress );
                     putsUART1( filename );
                 }
             }
             else
+            {
                 Success = FALSE;
 
-                sprintf( filename, "Error in #2 TransmitOneByte(): when writing address %u.\n", (unsigned)regAddress );
+                sprintf( filename, "Error in #2 TransmitOneByte() - !starttranfer : when writing address %u.\n", (unsigned)regAddress );
                 putsUART1( filename );
 
-            // End the transfer
+
+            }
+                // End the transfer
             StopTransfer();
         }
         else
@@ -815,16 +820,22 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
 
 BOOL MPU6050::StartTransfer( BOOL restart )
 {
-    I2C_STATUS  status;
+    I2C_STATUS status = I2C_START;
     //UINT16 count = 0;
 
-    sprintf(filename, "Starting StartTransfer().\n");
-    putsUART1( filename );
+    //sprintf(filename, "Starting StartTransfer(), status = %d.\n", status);
+    //putsUART1( filename );
 
     // Send the Start (or Restart) signal
     if(restart)
     {
-        I2CRepeatStart( this->i2cBusId );
+        I2C_RESULT res = I2C_SUCCESS;
+        if((res = I2CRepeatStart( this->i2cBusId )) != I2C_SUCCESS)
+        {
+            sprintf(filename, "Repeat start, status = %d.\n",res);
+            putsUART1( filename );
+            // Do not return, try to connect anyway and fail
+        }
     }
     else
     {
@@ -853,28 +864,27 @@ BOOL MPU6050::StartTransfer( BOOL restart )
         }
     }
 
-    sprintf( filename, "StartTransfer(). Checking for Start response...\n" );
-    putsUART1( filename );
-
-    // Wait for the signal to complete or until time out
+    //sprintf( filename, "StartTransfer(). Checking for Start response...\n" );
+    //putsUART1( filename );
+    unsigned int max_tries = 64000, count = 0;
+    // Wait for the signal to complete or until tries are out
     do
     {
         status = I2CGetStatus( this->i2cBusId );
-        //count++;
-
-    } while ( !(status & I2C_START) );
-//while ( !(status & I2C_START) && count < 64000);
-
-/*    if( count >= 64000 )
+        //sprintf( filename, "StartTransfer(). Status is %u \n", status & I2C_START );
+        //putsUART1( filename );
+    } while (!(status & I2C_START) && ++count < max_tries);
+    
+    if( count >= max_tries )
     {
         sprintf( filename, "Error in StartTransfer(). Timeout!\n" );
         putsUART1( filename );  
 
         return FALSE;
-    }*/
+    }
 
-    sprintf( filename, "StartTransfer(). Function successfully completed!\n" );
-    putsUART1( filename );
+    //sprintf( filename, "StartTransfer(). Function successfully completed!\n" );
+    //putsUART1( filename );
 
     return TRUE;
 }
