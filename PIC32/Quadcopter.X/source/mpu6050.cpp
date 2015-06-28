@@ -52,9 +52,9 @@ MPU6050::MPU6050(void)
     gyro_ysensitivity = 65.5;
     gyro_zsensitivity = 1.0;
 
-    GYRO_XANGLE = 0.0;
-    GYRO_YANGLE = 0.0;
-    GYRO_ZANGLE = 0.0;
+    XANGLE = 0.0;
+    YANGLE = 0.0;
+    ZANGLE = 0.0;
 
     // Set the I2C interface used
     this->i2cBusId = I2C1;
@@ -79,9 +79,9 @@ MPU6050::MPU6050( I2C_MODULE new_i2cBusId, UINT8 new_devAddress )
     gyro_ysensitivity = 65.5;
     gyro_zsensitivity = 1.0;
 
-    GYRO_XANGLE = 0.0;
-    GYRO_YANGLE = 0.0;
-    GYRO_ZANGLE = 0.0;
+    XANGLE = 0.0;
+    YANGLE = 0.0;
+    ZANGLE = 0.0;
 
     // Set the I2C interface used
     //this->i2cBusId = new_i2cBusId;
@@ -388,6 +388,15 @@ void MPU6050::Get_Gyro_Rates()
 
 
 }
+
+void MPU6050::CalcAngleY()
+{
+    //AccY = ( -AccX + 800 ) / 177;		// 177 	// 93.6
+    //AccY = (-AccX);
+
+    YANGLE = (0.98)*(YANGLE + GYRO_YRATE / 117) + (0.02)*((-ACCEL_XOUT * 90) + 5.7); // Loopen går i ca 117 Hz
+}
+
 
 /**********************************************************************
  * This function opens the I2C device by simply calling the open system

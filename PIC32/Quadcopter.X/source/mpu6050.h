@@ -167,6 +167,10 @@ class MPU6050
         float GetGyroY() {return GYRO_YRATE;}
         float GetGyroZ() {return GYRO_ZRATE;}
 
+        float GetAngleY() {return YANGLE;}
+        
+        void CalcAngleY();
+
     private:        
 
         // Initiate the i2c bus. Called only in constructors.
@@ -220,9 +224,9 @@ class MPU6050
         float GYRO_ZRATE;
 
         // Gyro Angles
-        float GYRO_XANGLE;
-        float GYRO_YANGLE;
-        float GYRO_ZANGLE;
+        float XANGLE;
+        float YANGLE;
+        float ZANGLE;
 
 
 
