@@ -131,7 +131,7 @@ void MPU6050::Setup_MPU6050()
     //mPORTBSetBits(BIT_2);
 
     //Sets sample rate to 8000/1+7 = 1000Hz
-    BOOL test = writeReg(MPU6050_RA_SMPLRT_DIV, 0x07);
+    writeReg(MPU6050_RA_SMPLRT_DIV, 0x07);
     //Disable FSync, 256Hz DLPF
 
     
@@ -255,8 +255,8 @@ void MPU6050::Setup_MPU6050()
 
     //cout << "MPU6050 Setup Complete" << endl;
 
-    sprintf(filename, "writeReg() completed! STATUS = %d\n", test);
-    putsUART1( filename );
+    //sprintf(filename, "writeReg() completed! STATUS = %d\n", test);
+    //putsUART1( filename );
 }
 
 void MPU6050::Calibrate_Gyros()
@@ -446,7 +446,8 @@ BOOL MPU6050::I2CInit()
         sprintf(filename, "I2CInit(): I2C1 clock frequency OK.\n");
     }
 
-    putsUART1( filename );
+    // this function locks the application! Why??!!
+    //putsUART1( filename );
 
     // Enable the I2C bus
     I2CEnable( this->i2cBusId, TRUE );
@@ -689,8 +690,8 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
     BOOL                Acknowledged = FALSE;
     BOOL                Success = TRUE;    
 
-    sprintf(filename, "Starting writeReg().\n");
-    putsUART1( filename );
+    //sprintf(filename, "Starting writeReg().\n");
+    //putsUART1( filename );
 
     // Initialize the data buffer
     I2C_FORMAT_7_BIT_ADDRESS(SlaveAddress, this->deviceAddress, I2C_WRITE);
@@ -734,20 +735,20 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
         }
     }    
 
-    sprintf(filename, "Before StopTransfer()\n");
-    putsUART1( filename );
+    //sprintf(filename, "Before StopTransfer()\n");
+    //putsUART1( filename );
 
     // End the transfer
     StopTransfer();
 
-    sprintf(filename, "After StopTransfer()\n");
-    putsUART1( filename );
+    //sprintf(filename, "After StopTransfer()\n");
+    //putsUART1( filename );
 
     // Wait for device to complete write process, by polling the ack status.
     while(Acknowledged != TRUE && Success != FALSE)
     {
-        sprintf(filename, "Inside the loop\n");
-        putsUART1( filename );
+        //sprintf(filename, "Inside the loop\n");
+        //putsUART1( filename );
 
         // Start the transfer
         if( StartTransfer(FALSE) )
@@ -758,11 +759,11 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
                 // Check to see if the byte was acknowledged
                 Acknowledged = I2CByteWasAcknowledged( this->i2cBusId );
 
-                if( !Acknowledged )
+                /*if( !Acknowledged )
                 {
                     sprintf( filename, "!Acknowledged %u.\n", (unsigned)regAddress );
                     putsUART1( filename );
-                }
+                }*/
             }
             else
             {
@@ -785,8 +786,8 @@ BOOL MPU6050::writeReg(UINT8 regAddress, UINT8 data)
         }
     }
 
-    sprintf(filename, "After the loop\n");
-    putsUART1( filename );
+    //sprintf(filename, "After the loop\n");
+    //putsUART1( filename );
 
     if( !Success )
     {

@@ -181,61 +181,8 @@ int main(int argc, char** argv)
 }
  */
 
-
-// Timer2 ISR
-//void __ISR(_TIMER_2_VECTOR, ipl7) T2_IntHandler (void)
-
-void __ISR(_TIMER_2_VECTOR, ipl7) Timer2Handler(void)
+int main(int argc, char** argv)
 {
-    //MPU6050dev.Get_Accel_Values();
-    //MPU6050dev.Get_Gyro_Rates();
-
-    //MPU6050dev.CalcAngleY();
-
-    test_var++;
-
-    if (test_var >= 1000) {
-        test_var = 0;
-
-        mPORTBToggleBits(BIT_2);
-    }
-
-    mT2ClearIntFlag(); //IFS0CLR = 0x0200; // Clearing Timer2 interrupt flag
-}
-
-
-// Timer3 ISR
-void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler(void)
-{
-    //mPORTAToggleBits(BIT_1);
-
-    if (forward) {
-        Set_pwm(pwm_signal);
-        Set_pwm2(pwm_signal);
-        Set_pwm3(pwm_signal);
-        Set_pwm4(pwm_signal);
-
-        pwm_signal++;
-
-        if (pwm_signal >= 100) {
-            forward = 0;
-        }
-    } else {
-        Set_pwm(pwm_signal);
-        Set_pwm2(pwm_signal);
-        Set_pwm3(pwm_signal);
-        Set_pwm4(pwm_signal);
-
-        pwm_signal--;
-
-        if (pwm_signal <= 0) {
-            forward = 1;
-        }
-    }
-    IFS0CLR = 0x4000; // Clearing Timer3 interrupt flag
-}
-
-int main(int argc, char** argv) {
     // Peripheral Pin Select
     SYSKEY = 0xAA996655; // Write Key1 to SYSKEY
     SYSKEY = 0x556699AA; // Write Key2 to SYSKEY
@@ -282,10 +229,10 @@ int main(int argc, char** argv) {
 
     // Configure the Output Compare channels for PWM mode using Timer3
     // setup output compare channel #1 - RD0
-    OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    //OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
 
 
     // Configure Timer3 interrupt. Note that in PWM mode, the
@@ -293,14 +240,14 @@ int main(int argc, char** argv) {
     // OC interrupt is not generated in PWM mode.
 
     // Interrupt setup for Timer2 (should work for PIC32MX250)
-    IFS0CLR = 0x00000200; // Clear the T2 interrupt flag
-    IEC0SET = 0x00000200; // Enable T2 interrupt
-    IPC2SET = 0x0000001C; // Set T2 interrupt priority to 7
+    IFS0CLR = 0x00000200;           // Clear the T2 interrupt flag
+    IEC0SET = 0x00000200;           // Enable T2 interrupt
+    IPC2SET = 0x0000001C;           // Set T2 interrupt priority to 7
 
     // Interrupt setup for Timer3
-    IFS0CLR = 0x00004000;           // Clear the T3 interrupt flag
-    IEC0SET = 0x00004000;           // Enable T3 interrupt
-    IPC3SET = 0x0000001C;           // Set T3 interrupt priority to 7
+    //IFS0CLR = 0x00004000;           // Clear the T3 interrupt flag
+    //IEC0SET = 0x00004000;           // Enable T3 interrupt
+    //IPC3SET = 0x0000001C;           // Set T3 interrupt priority to 7
 
     // Configure Timer2
     // Timer2 generates 1ms period
@@ -309,16 +256,15 @@ int main(int argc, char** argv) {
 
     // Configure Timer3
     // Timer3 generates 20ms period for PWM
-    OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
+    //OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
 
-    OC1CONSET = 0x8000;             // Enable OC1
-    OC2CONSET = 0x8000;             // Enable OC2
-    OC3CONSET = 0x8000;             // Enable OC3
-    OC4CONSET = 0x8000;             // Enable OC4
+    //OC1CONSET = 0x8000;             // Enable OC1
+    //OC2CONSET = 0x8000;             // Enable OC2
+    //OC3CONSET = 0x8000;             // Enable OC3
+    //OC4CONSET = 0x8000;             // Enable OC4
 
 
-     INTEnableSystemMultiVectoredInt(); // Enable system wide interrupt to
-    // multivectored mode.
+     INTEnableSystemMultiVectoredInt(); // Enable system wide interrupt to multivectored mode.
 
 
     // Configure UART1
@@ -438,10 +384,10 @@ int main(int argc, char** argv) {
         //kh_test = MPU6050dev.MPU6050_Test_I2C();
 
 
-        AngleY = MPU6050dev.GetAngleY();
+        //AngleY = MPU6050dev.GetAngleY();
 
-        sprintf(filename, "Y Angle: %f\n", AngleY);
-        putsUART1(filename);
+        //sprintf(filename, "Y Angle: %f\n", AngleY);
+        //putsUART1(filename);
 
 
         /*while(U1STAbits.URXDA)
@@ -507,6 +453,81 @@ char* itoa( INT16 nr, char *string )
  */
 
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+// Timer2 ISR
+//void __ISR(_TIMER_2_VECTOR, ipl7) T2_IntHandler (void)
+
+void __ISR(_TIMER_2_VECTOR, ipl7) Timer2Handler(void)
+{
+    char filename[55]; //Array of 50 chars
+
+    MPU6050dev.Get_Accel_Values();
+    MPU6050dev.Get_Gyro_Rates();
+
+    MPU6050dev.CalcAngleY();
+
+    test_var++;
+
+    if (test_var >= 1000)
+    {
+        test_var = 0;
+
+        sprintf(filename, "Y Angle: %f\n", MPU6050dev.GetAngleY());
+        putsUART1(filename);
+
+        mPORTBToggleBits(BIT_2);
+    }
+
+    //mT2ClearIntFlag();
+    IFS0CLR = 0x0200; // Clearing Timer2 interrupt flag
+}
+
+#ifdef __cplusplus
+}
+#endif
+
+/*
+// Timer3 ISR
+void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler(void)
+{
+    //mPORTAToggleBits(BIT_1);
+
+    if (forward)
+    {
+        Set_pwm(pwm_signal);
+        Set_pwm2(pwm_signal);
+        Set_pwm3(pwm_signal);
+        Set_pwm4(pwm_signal);
+
+        pwm_signal++;
+
+        if (pwm_signal >= 100) {
+            forward = 0;
+        }
+    }
+    else
+    {
+        Set_pwm(pwm_signal);
+        Set_pwm2(pwm_signal);
+        Set_pwm3(pwm_signal);
+        Set_pwm4(pwm_signal);
+
+        pwm_signal--;
+
+        if (pwm_signal <= 0) {
+            forward = 1;
+        }
+    }
+    IFS0CLR = 0x4000; // Clearing Timer3 interrupt flag
+}
+
+
+
+
+*/
 
 /*******************************************************************************
   Function:
