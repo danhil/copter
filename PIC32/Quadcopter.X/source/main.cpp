@@ -465,17 +465,21 @@ void __ISR(_TIMER_2_VECTOR, ipl7) Timer2Handler(void)
     char filename[55]; //Array of 50 chars
 
     MPU6050dev.Get_Accel_Values();
+    MPU6050dev.Get_Accel_Angles();
     MPU6050dev.Get_Gyro_Rates();
 
-    MPU6050dev.CalcAngleY();
+    MPU6050dev.CalcAngleX();
 
     test_var++;
 
-    if (test_var >= 1000)
+    if (test_var >= 200)
     {
         test_var = 0;
 
-        sprintf(filename, "Y Angle: %f\n", MPU6050dev.GetAngleY());
+        sprintf(filename, "Angle: %f\n", MPU6050dev.GetAngleX());
+        //sprintf(filename, "Y Angle: %f\n", MPU6050dev.GetAngleY());
+        //sprintf(filename, ": %f\n", MPU6050dev.GetAccX());
+
         putsUART1(filename);
 
         mPORTBToggleBits(BIT_2);

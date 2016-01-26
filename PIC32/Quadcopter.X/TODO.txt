@@ -53,3 +53,7 @@ Output result from gyro to the terminal window in PC (using UART/USB converter)
 
 Get a 1ms interrupt running and trigger the gyro filter function with this
     Is it enought time to make all the readings and calculations?
+
+
+
+

@@ -1,26 +1,4 @@
-/*
-//#include <string>
-#include <stdio.h>
-//#include <conio.h>
-
-#include <fcntl.h>
-#include <stdlib.h>
-
-#include <string.h>
-
-
-#include <time.h>
-
-
-#include <sys/types.h>
-#include <sys/time.h>
-
-#include <iostream>
-using namespace std;
-*/
-
 #include <math.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <xc.h>
@@ -143,7 +121,6 @@ using namespace std;
 #define MPU6050_RA_WHO_AM_I 0x75
 
 
-
 class MPU6050
 {
     public:
@@ -159,16 +136,18 @@ class MPU6050
         void Get_Gyro_Rates();
         float GetAngle() {return ACCEL_XANGLE;}
 
-        float GetAccX() {return ACCEL_XOUT;}
-        float GetAccY() {return ACCEL_YOUT;}
-        float GetAccZ() {return ACCEL_ZOUT;}
+        float GetAccX() {return ACCEL_XFORCE;}
+        float GetAccY() {return ACCEL_YFORCE;}
+        float GetAccZ() {return ACCEL_ZFORCE;}
 
         float GetGyroX() {return GYRO_XRATE;}
         float GetGyroY() {return GYRO_YRATE;}
         float GetGyroZ() {return GYRO_ZRATE;}
 
+        float GetAngleX() {return XANGLE;}
         float GetAngleY() {return YANGLE;}
-        
+
+        void CalcAngleX();
         void CalcAngleY();
 
     private:        
@@ -184,21 +163,10 @@ class MPU6050
         BOOL TransmitOneByte( UINT8 data );
         void StopTransfer( void );
 
-
         // private member variables        
 
         I2C_MODULE  i2cBusId;                       // i2c bus id
         UINT8       deviceAddress;                  // i2c device address
-
-
-        // Offset values used internally
-        int     GYRO_XOUT_OFFSET;
-        int	GYRO_YOUT_OFFSET;
-        int	GYRO_ZOUT_OFFSET;
-
-        int     ACCEL_XOUT_OFFSET;
-        int	ACCEL_YOUT_OFFSET;
-        int	ACCEL_ZOUT_OFFSET;
 
         // Temporary values used internally
         unsigned char	GYRO_XOUT_H;
@@ -215,35 +183,35 @@ class MPU6050
         unsigned char	ACCEL_ZOUT_H;
         unsigned char	ACCEL_ZOUT_L;
 
-
-
+        // Offset values used internally
+        int     GYRO_XOUT_OFFSET;
+        int	GYRO_YOUT_OFFSET;
+        int	GYRO_ZOUT_OFFSET;
 
         // Degrees/s
         float GYRO_XRATE;
         float GYRO_YRATE;
         float GYRO_ZRATE;
 
-        // Gyro Angles
+        // Calculated Angles in degrees using Gyros and Acc
         float XANGLE;
         float YANGLE;
         float ZANGLE;
 
+        // Gyro scale
+        float GYRO_XSCALE;
+        float GYRO_YSCALE;
+        float GYRO_ZSCALE;
 
+        // Accelerometer scale
+        int ACCEL_XSCALE;
+        int ACCEL_YSCALE;
+        int ACCEL_ZSCALE;
 
-        // Adjustment values for the gyro values
-        float gyro_xsensitivity;
-        float gyro_ysensitivity;
-        float gyro_zsensitivity;
-
-        // Raw data
-        int RAW_ACCEL_XOUT;
-        int RAW_ACCEL_YOUT;
-        int RAW_ACCEL_ZOUT;
-
-        // Raw data
-        float ACCEL_XOUT;
-        float ACCEL_YOUT;
-        float ACCEL_ZOUT;
+        // Accelerometer readings in g.
+        float ACCEL_XFORCE;
+        float ACCEL_YFORCE;
+        float ACCEL_ZFORCE;
 
         // Euler angels
         float ACCEL_XANGLE;

@@ -48,9 +48,16 @@ int mSleep( int milliseconds )
  *****************************************************************/
 MPU6050::MPU6050(void)
 {
-    gyro_xsensitivity = 1.0;
-    gyro_ysensitivity = 65.5;
-    gyro_zsensitivity = 1.0;
+    // Full scale range of 500 º/s => 65.5 LSB/(º/s)
+    // See MPU-6050 Product Specification page 12 for more information.
+
+    GYRO_XSCALE = 65.5;
+    GYRO_YSCALE = 65.5;
+    GYRO_ZSCALE = 65.5;
+
+    ACCEL_XSCALE = 16384;
+    ACCEL_YSCALE = 16384;
+    ACCEL_ZSCALE = 16384;
 
     XANGLE = 0.0;
     YANGLE = 0.0;
@@ -75,9 +82,16 @@ MPU6050::MPU6050(void)
  * *****************************************************************/
 MPU6050::MPU6050( I2C_MODULE new_i2cBusId, UINT8 new_devAddress )
 {
-    gyro_xsensitivity = 1.0;
-    gyro_ysensitivity = 65.5;
-    gyro_zsensitivity = 1.0;
+    // Full scale range of 500 º/s => 65.5 LSB/(º/s)
+    // See MPU-6050 Product Specification page 12 for more information.
+
+    GYRO_XSCALE = 65.5;
+    GYRO_YSCALE = 65.5;
+    GYRO_ZSCALE = 65.5;
+
+    ACCEL_XSCALE = 16384;
+    ACCEL_YSCALE = 16384;
+    ACCEL_ZSCALE = 16384;
 
     XANGLE = 0.0;
     YANGLE = 0.0;
@@ -292,10 +306,7 @@ void MPU6050::Calibrate_Gyros()
         GYRO_XOUT_OFFSET_1000SUM += GYRO_XOUT_OFFSET;
         GYRO_YOUT_OFFSET_1000SUM += GYRO_YOUT_OFFSET;
         GYRO_ZOUT_OFFSET_1000SUM += GYRO_ZOUT_OFFSET;
-
-        //__delay_ms(1);
-        //mSleep(1);		// function not accurate but itÂ´s OK for now..
-
+        
         a = 0;
         while( a < 1000 )
         {
@@ -304,16 +315,16 @@ void MPU6050::Calibrate_Gyros()
     }
     GYRO_XOUT_OFFSET = GYRO_XOUT_OFFSET_1000SUM / 1000;
     GYRO_YOUT_OFFSET = GYRO_YOUT_OFFSET_1000SUM / 1000;
-    GYRO_ZOUT_OFFSET = GYRO_ZOUT_OFFSET_1000SUM / 1000;
-
-    //cout << "Gyro X offset sum: " << GYRO_XOUT_OFFSET_1000SUM << " Gyro X offset: " << GYRO_XOUT_OFFSET << endl;
-    //cout << "Gyro Y offset sum: " << GYRO_YOUT_OFFSET_1000SUM << " Gyro Y offset: " << GYRO_YOUT_OFFSET << endl;
-    //cout << "Gyro Z offset sum: " << GYRO_ZOUT_OFFSET_1000SUM << " Gyro Z offset: " << GYRO_ZOUT_OFFSET << endl;
+    GYRO_ZOUT_OFFSET = GYRO_ZOUT_OFFSET_1000SUM / 1000;    
 }
 
-//Gets raw accelerometer data, performs no processing
+//Gets raw accelerometer data from MPU6050 and converts values to g
 void MPU6050::Get_Accel_Values()
 {
+    int ACCEL_XOUT;
+    int ACCEL_YOUT;
+    int ACCEL_ZOUT;
+
     readReg((unsigned char)MPU6050_RA_ACCEL_XOUT_H, ACCEL_XOUT_H);
     readReg((unsigned char)MPU6050_RA_ACCEL_XOUT_L, ACCEL_XOUT_L);
     readReg((unsigned char)MPU6050_RA_ACCEL_YOUT_H, ACCEL_YOUT_H);
@@ -321,31 +332,32 @@ void MPU6050::Get_Accel_Values()
     readReg((unsigned char)MPU6050_RA_ACCEL_ZOUT_H, ACCEL_ZOUT_H);
     readReg((unsigned char)MPU6050_RA_ACCEL_ZOUT_L, ACCEL_ZOUT_L);
 
-    RAW_ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
-    RAW_ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
-    RAW_ACCEL_ZOUT = ((ACCEL_ZOUT_H<<8)|ACCEL_ZOUT_L);
+    ACCEL_XOUT = ((ACCEL_XOUT_H<<8)|ACCEL_XOUT_L);
+    ACCEL_YOUT = ((ACCEL_YOUT_H<<8)|ACCEL_YOUT_L);
+    ACCEL_ZOUT = ((ACCEL_ZOUT_H<<8)|ACCEL_ZOUT_L);
 
     // Two's complement. Needs to be converted to make sense.
     // For info: (http://en.wikipedia.org/wiki/Two's_complement)
-    if ( RAW_ACCEL_XOUT > 0x7FFF ) 	// 0x7FFF = 32767
-        RAW_ACCEL_XOUT -= 0xFFFF;
-    if ( RAW_ACCEL_YOUT > 0x7FFF ) 	// 0x7FFF = 32767
-        RAW_ACCEL_YOUT = RAW_ACCEL_YOUT - 0xFFFF;
-    if ( RAW_ACCEL_ZOUT > 0x7FFF ) 	// 0x7FFF = 32767
-        RAW_ACCEL_ZOUT = RAW_ACCEL_ZOUT - 0xFFFF;
+    if ( ACCEL_XOUT > 0x7FFF ) 	// 0x7FFF = 32767
+        ACCEL_XOUT -= 0xFFFF;
+    if ( ACCEL_YOUT > 0x7FFF ) 	// 0x7FFF = 32767
+        ACCEL_YOUT = ACCEL_YOUT - 0xFFFF;
+    if ( ACCEL_ZOUT > 0x7FFF ) 	// 0x7FFF = 32767
+        ACCEL_ZOUT = ACCEL_ZOUT - 0xFFFF;
 
     // Converts raw data into g. 
     // See MPU-6050 Product Specification.pdf page 13 for more information.
-    ACCEL_XOUT = (float)RAW_ACCEL_XOUT / 16384;
-    ACCEL_YOUT = (float)RAW_ACCEL_YOUT / 16384;
-    ACCEL_ZOUT = (float)RAW_ACCEL_ZOUT / 16384;
+    ACCEL_XFORCE = (float)ACCEL_XOUT / ACCEL_XSCALE;
+    ACCEL_YFORCE = (float)ACCEL_YOUT / ACCEL_YSCALE;
+    ACCEL_ZFORCE = (float)ACCEL_ZOUT / ACCEL_ZSCALE;
 }
 
 //Converts the already acquired accelerometer data into 3D euler angles
 void MPU6050::Get_Accel_Angles()
 {
-    ACCEL_XANGLE = 57.295*atan((float)ACCEL_YOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_XOUT,2)));
-    ACCEL_YANGLE = 57.295*atan((float)-ACCEL_XOUT/ sqrt(pow((float)ACCEL_ZOUT,2)+pow((float)ACCEL_YOUT,2)));
+    // 180 / pi = 57.296    
+    ACCEL_XANGLE = 57.296 * atan( ACCEL_YFORCE / sqrt( ACCEL_ZFORCE * ACCEL_ZFORCE + ACCEL_XFORCE * ACCEL_XFORCE));
+    ACCEL_YANGLE = 57.296 * atan( ACCEL_XFORCE / sqrt( ACCEL_ZFORCE * ACCEL_ZFORCE + ACCEL_YFORCE * ACCEL_YFORCE));
 }
 
 //Function to read the gyroscope rate data and convert it into degrees/s
@@ -379,24 +391,22 @@ void MPU6050::Get_Gyro_Rates()
     GYRO_YOUT -= GYRO_YOUT_OFFSET;
     GYRO_ZOUT -= GYRO_ZOUT_OFFSET;
 
-    GYRO_XRATE = (float)GYRO_XOUT / gyro_xsensitivity;
-    GYRO_YRATE = (float)GYRO_YOUT / gyro_ysensitivity;
-    GYRO_ZRATE = (float)GYRO_ZOUT / gyro_zsensitivity;
+    // Converts raw data into degrees/s.
+    // See MPU-6050 Product Specification.pdf page 12 for more information.
+    GYRO_XRATE = (float)GYRO_XOUT / GYRO_XSCALE;
+    GYRO_YRATE = (float)GYRO_YOUT / GYRO_YSCALE;
+    GYRO_ZRATE = (float)GYRO_ZOUT / GYRO_ZSCALE;
+}
 
-
-    //GYRO_XANGLE += GYRO_XRATE * 0.01;
-
-
+void MPU6050::CalcAngleX()
+{
+    XANGLE = 0.998 * (XANGLE + GYRO_XRATE / 1000) + 0.002 * ACCEL_XANGLE;
 }
 
 void MPU6050::CalcAngleY()
 {
-    //AccY = ( -AccX + 800 ) / 177;		// 177 	// 93.6
-    //AccY = (-AccX);
-
-    YANGLE = (0.98)*(YANGLE + GYRO_YRATE / 117) + (0.02)*((-ACCEL_XOUT * 90) + 5.7); // Loopen går i ca 117 Hz
+    YANGLE = 0.998 * (YANGLE + GYRO_YRATE / 1000) + 0.002 * ACCEL_YANGLE;
 }
-
 
 /**********************************************************************
  * This function opens the I2C device by simply calling the open system
