@@ -25,27 +25,6 @@ char filename[80];
 
 */
 
-/*
-int mSleep( int milliseconds )
-{
-    struct timespec tim, tim2;
-    tim.tv_sec = 0;
-    tim.tv_nsec = 1000000 * milliseconds;
-
-    if(nanosleep(&tim , &tim2) < 0 )
-    {
-        printf("Nano sleep system call failed \n");
-        return -1;
-    }
-
-    return 0;
-}
-*/
-/*****************************************************************
- * This is the default constructor for the class. It assigns
- * all private variables to default values and calls the openI2C()
- * function to open the default I2C device "/dev/i2c-1".
- *****************************************************************/
 MPU6050::MPU6050(void)
 {
     // Full scale range of 500 º/s => 65.5 LSB/(º/s)
@@ -66,20 +45,12 @@ MPU6050::MPU6050(void)
     // Set the I2C interface used
     this->i2cBusId = I2C1;
     // Set the device address
-    this->deviceAddress = 0x68;
-
-    //cout << " Opening I2C Device" << endl;
+    this->deviceAddress = 0x68;    
 
     // TODO: Fault handling! What to do if function fails?
     I2CInit();
 }
 
-/*******************************************************************
- * This is the overloaded constructor. It allows the programmer to
- * specify a custom I2C device & device address
- * The device descriptor is determined by the openI2C() private member
- * function call.
- * *****************************************************************/
 MPU6050::MPU6050( I2C_MODULE new_i2cBusId, UINT8 new_devAddress )
 {
     // Full scale range of 500 º/s => 65.5 LSB/(º/s)
@@ -102,9 +73,7 @@ MPU6050::MPU6050( I2C_MODULE new_i2cBusId, UINT8 new_devAddress )
     this->i2cBusId = new_i2cBusId;
     // Set the device address
     //this->deviceAddress = new_devAddress;
-    this->deviceAddress = new_devAddress;
-
-    //cout << " Opening I2C Device" << endl;    
+    this->deviceAddress = new_devAddress;  
     
     // TODO: Fault handling! What to do if function fails?
     I2CInit();
@@ -267,8 +236,6 @@ void MPU6050::Setup_MPU6050()
     writeReg(MPU6050_RA_FIFO_R_W, 0x00);
     //MPU6050_RA_WHO_AM_I             //Read-only, I2C address
 
-    //cout << "MPU6050 Setup Complete" << endl;
-
     //sprintf(filename, "writeReg() completed! STATUS = %d\n", test);
     //putsUART1( filename );
 }
@@ -357,7 +324,7 @@ void MPU6050::Get_Accel_Angles()
 {
     // 180 / pi = 57.296    
     ACCEL_XANGLE = 57.296 * atan( ACCEL_YFORCE / sqrt( ACCEL_ZFORCE * ACCEL_ZFORCE + ACCEL_XFORCE * ACCEL_XFORCE));
-    ACCEL_YANGLE = 57.296 * atan( ACCEL_XFORCE / sqrt( ACCEL_ZFORCE * ACCEL_ZFORCE + ACCEL_YFORCE * ACCEL_YFORCE));
+    ACCEL_YANGLE = 57.296 * atan( -ACCEL_XFORCE / sqrt( ACCEL_ZFORCE * ACCEL_ZFORCE + ACCEL_YFORCE * ACCEL_YFORCE));
 }
 
 //Function to read the gyroscope rate data and convert it into degrees/s
@@ -400,12 +367,12 @@ void MPU6050::Get_Gyro_Rates()
 
 void MPU6050::CalcAngleX()
 {
-    XANGLE = 0.998 * (XANGLE + GYRO_XRATE / 1000) + 0.002 * ACCEL_XANGLE;
+    XANGLE = 0.99 * (XANGLE + GYRO_XRATE / 500) + 0.01 * ACCEL_XANGLE;
 }
 
 void MPU6050::CalcAngleY()
 {
-    YANGLE = 0.998 * (YANGLE + GYRO_YRATE / 1000) + 0.002 * ACCEL_YANGLE;
+    YANGLE = 0.99 * (YANGLE + GYRO_YRATE / 500) + 0.01 * ACCEL_YANGLE;
 }
 
 /**********************************************************************
@@ -886,7 +853,7 @@ BOOL MPU6050::StartTransfer( BOOL restart )
 
     //sprintf( filename, "StartTransfer(). Checking for Start response...\n" );
     //putsUART1( filename );
-    unsigned int max_tries = 64000, count = 0;
+    UINT16 max_tries = 64000, count = 0;
     // Wait for the signal to complete or until tries are out
     do
     {
@@ -948,7 +915,7 @@ BOOL MPU6050::TransmitOneByte( UINT8 data )
         count++;
     }
 
-    if( I2CTransmitterIsReady( this->i2cBusId ) )
+    if( count < 64000 )
     {
         // Transmit the byte
         if(I2CSendByte( this->i2cBusId, data) == I2C_MASTER_BUS_COLLISION)
@@ -1025,5 +992,11 @@ void MPU6050::StopTransfer( void )
         status = I2CGetStatus( this->i2cBusId );
         count++;
 
-    } while ( !(status & I2C_STOP) && count < 200); 
+    } while ( !(status & I2C_STOP) && count < 200);
+
+    if ( count >= 200 )
+    {
+        sprintf( filename, "Error: StopTransfer(). Loop timeout for I2CGetStatus().\n" );
+        putsUART1( filename );
+    }
 }

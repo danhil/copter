@@ -52,8 +52,17 @@ Test UART/USB converter
 Output result from gyro to the terminal window in PC (using UART/USB converter)
 
 Get a 1ms interrupt running and trigger the gyro filter function with this
-    Is it enought time to make all the readings and calculations?
+    Is it enought time to make all the readings and calculations? No!
 
+Load calculation
+    Setup a counter and check cycle time (so no interrupts are missed)
+    and duty time to see how occupied the processor is.
+    Create an average, min and max-value (min and max should be able to reset).
 
+Find out how much time it takes to read all data from MPU6050 and make all calculations.
+1ms cycle time is not going to work! Maybe 2ms..
 
+Split up main.cpp. Maybe create a config.h with the Configuration Bits in.
 
+Bra info!
+http://www.i2c-bus.org/clock-stretching/
