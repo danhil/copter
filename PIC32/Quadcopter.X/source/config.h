@@ -44,7 +44,7 @@
 
 // DEVCFG0
 #pragma config JTAGEN = OFF             // JTAG Enable (JTAG Disabled)
-#pragma config ICESEL = ICS_PGx3        // ICE/ICD Comm Channel Select (Communicate on PGEC3/PGED3)
+#pragma config ICESEL = ICS_PGx2        // ICE/ICD Comm Channel Select (Communicate on PGEC2/PGED2)
 #pragma config PWP = OFF                // Program Flash Write Protect (Disable)
 #pragma config BWP = OFF                // Boot Flash Write Protect bit (Protection Disabled)
 #pragma config CP = OFF                 // Code Protect (Protection Disabled)
@@ -95,14 +95,14 @@
 #define PWM_PERIOD          (60000)
 #define PWM_MIN_DC          (2000)      // Min duty cycle
 #define PWM_MAX_DC          (7000)      // Max duty cycle
-#define PWM_FACTOR          ( (PWM_MAX_DC - PWM_MIN_DC) / 100 )
+#define PWM_FACTOR          ( (PWM_MAX_DC - PWM_MIN_DC) / 1000 )
 
-// Converts the 0-100% signal into the correct value for the
+// Converts the 0-1000 permille signal into the correct value for the
 // duty cycle register and sets that register.
-#define Set_pwm( duty_cycle_in_percent ) ( OC1RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-#define Set_pwm2( duty_cycle_in_percent ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-#define Set_pwm3( duty_cycle_in_percent ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
-#define Set_pwm4( duty_cycle_in_percent ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_percent) )
+#define Set_pwm1( duty_cycle_in_permille ) ( OC1RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_permille) )
+#define Set_pwm2( duty_cycle_in_permille ) ( OC2RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_permille) )
+#define Set_pwm3( duty_cycle_in_permille ) ( OC3RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_permille) )
+#define Set_pwm4( duty_cycle_in_permille ) ( OC4RS = PWM_MIN_DC + PWM_FACTOR * (duty_cycle_in_permille) )
 
 
 #define SYS_CLOCK (48000000L)

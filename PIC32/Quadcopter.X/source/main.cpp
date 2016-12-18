@@ -16,7 +16,7 @@
 MPU6050 MPU6050dev;
 
 char forward = 1;
-char pwm_signal = 0;
+short int pwm_signal = 0;
 
 unsigned int test_var = 0;
 
@@ -68,10 +68,10 @@ int main(int argc, char** argv)
 
     // Configure the Output Compare channels for PWM mode using Timer3
     // setup output compare channel #1 - RD0
-    //OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
-    //OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC1(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC2(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC3(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
+    OpenOC4(OC_OFF | OC_TIMER_MODE16 | OC_TIMER3_SRC | OC_PWM_FAULT_PIN_DISABLE, 0,0);
 
 
     // Configure Timer3 interrupt. Note that in PWM mode, the
@@ -95,12 +95,12 @@ int main(int argc, char** argv)
 
     // Configure Timer3
     // Timer3 generates 20ms period for PWM
-    //OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
+    OpenTimer3(T3_ON | T3_PS_1_8, PWM_PERIOD);
 
-    //OC1CONSET = 0x8000;             // Enable OC1
-    //OC2CONSET = 0x8000;             // Enable OC2
-    //OC3CONSET = 0x8000;             // Enable OC3
-    //OC4CONSET = 0x8000;             // Enable OC4
+    OC1CONSET = 0x8000;             // Enable OC1
+    OC2CONSET = 0x8000;             // Enable OC2
+    OC3CONSET = 0x8000;             // Enable OC3
+    OC4CONSET = 0x8000;             // Enable OC4
 
 
      INTEnableSystemMultiVectoredInt(); // Enable system wide interrupt to multivectored mode.
@@ -208,6 +208,39 @@ void __ISR(_TIMER_2_VECTOR, ipl7) Timer2Handler(void)
         putsUART1(filename);
 
        //mPORTBToggleBits(BIT_5);
+
+       /*
+       // Test code for PWM
+       if (forward)
+        {
+            Set_pwm1(pwm_signal);
+            Set_pwm2(pwm_signal);
+            Set_pwm3(pwm_signal);
+            Set_pwm4(pwm_signal);
+
+            //pwm_signal++;
+            pwm_signal = pwm_signal + 20;
+
+            if (pwm_signal >= 1000) {
+                forward = 0;
+            }
+        }
+        else
+        {
+            Set_pwm1(pwm_signal);
+            Set_pwm2(pwm_signal);
+            Set_pwm3(pwm_signal);
+            Set_pwm4(pwm_signal);
+
+            //pwm_signal--;
+            pwm_signal = pwm_signal - 20;
+
+            if (pwm_signal <= 0) {
+                forward = 1;
+            }
+        }
+        */
+
     }
 
     //mT2ClearIntFlag();
@@ -226,7 +259,7 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler(void)
 
     if (forward)
     {
-        Set_pwm(pwm_signal);
+        Set_pwm1(pwm_signal);
         Set_pwm2(pwm_signal);
         Set_pwm3(pwm_signal);
         Set_pwm4(pwm_signal);
@@ -239,7 +272,7 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler(void)
     }
     else
     {
-        Set_pwm(pwm_signal);
+        Set_pwm1(pwm_signal);
         Set_pwm2(pwm_signal);
         Set_pwm3(pwm_signal);
         Set_pwm4(pwm_signal);
@@ -250,6 +283,7 @@ void __ISR(_TIMER_3_VECTOR, ipl7) T3_IntHandler(void)
             forward = 1;
         }
     }
+  
     IFS0CLR = 0x4000; // Clearing Timer3 interrupt flag
 }
 
