@@ -66,3 +66,7 @@ Split up main.cpp. Maybe create a config.h with the Configuration Bits in.
 
 Bra info!
 http://www.i2c-bus.org/clock-stretching/
+
+Tydligen har ESC ett lågpassfilter vilket göra att hastighetsförändringar inte
+görs så snabbt. Speciellt inte om PWM-signalen är på 50Hz. Det ska gå bra att
+öka PWM-frekvensen upp till 400Hz.
